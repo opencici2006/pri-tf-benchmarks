@@ -1,5 +1,5 @@
-result_dir="/panfs/users/mabuzain/results/"
-python_script="/global/panfs01/users3/mabuzain/run_single_node_mode.py"
+result_dir=""
+python_script=""
 
 if [ -z "$result_dir" ]; then
   echo "Error: path to result directory cannot be empty. Please add it in the script."
