@@ -4,6 +4,8 @@ from optparse import OptionParser
 import os
 import sys
 
+file_location = ""
+
 def init_variables(cpu, model, dir):
   if (cpu == 'bdw' and model == 'alexnet' and dir == None) :
         intra_op = 44
@@ -120,7 +122,7 @@ def main():
    intra_op = int(options.intra_op)
   if options.batch_size is not None:
    batch_size = int(options.batch_size)
-  command_prefix = "python /nfs/pdx/home/jinghua2/private-tensorflow-benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks_MKL.py "
+  command_prefix = "python " + file_location + " "
   if options.cpu == 'knl': 
      command_prefix = 'numactl -m 1 ' + command_prefix
   if options.trace_file is not None:
