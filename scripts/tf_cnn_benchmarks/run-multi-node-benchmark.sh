@@ -2,12 +2,12 @@ result_dir=""
 python_script=""
 
 if [ -z "$result_dir" ]; then
-  echo "Error: path to result directory cannot be empty. Please add it in the script."
+  echo "Error: path to result directory cannot be empty. Please add it in the shell script."
   exit 1
 fi
 
 if [ -z "$python_script" ]; then
-  echo "Error: path to python script cannot be empty. Please add it in the script."
+  echo "Error: path to run_single_node_mode.py script cannot be empty. Please add it in the shell script."
   exit 1
 fi
 
@@ -21,6 +21,8 @@ if [ -z "$LSB_MAX_NUM_PROCESSORS" ]; then
 else
   total_num_of_available_nodes=$LSB_MAX_NUM_PROCESSORS
 fi
+
+echo "Total num of available nodes: "$total_num_of_available_nodes
 
 read -p $'Please specify the model you would like to run: 
 [0] alexnet 
@@ -60,66 +62,66 @@ fi
 
 case $CPU in
   "bdw") if [ $MODEL == "alexnet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "googlenet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "vgg11" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "inception3" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "resnet50" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          ;;
   "knl") if [ $MODEL == "alexnet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "googlenet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "vgg11" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "inception3" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "resnet50" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          ;;
   "skl") if [ $MODEL == "alexnet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "googlenet" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "vgg11" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "inception3" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          if [ $MODEL == "resnet50" ]; then
-           default_PS_INTER_OP_NUM_THREADS=2
-           default_PS_INTRA_OP_NUM_THREADS=34
+           default_PS_INTER_OP_NUM_THREADS=""
+           default_PS_INTRA_OP_NUM_THREADS=""
          fi 
          ;;
 esac
@@ -154,6 +156,8 @@ read -p "Please specify the path to data directory. [Enter for default]:>" DATA_
 
 read -p "Please enter the the training data name. [Enter for default]:>" DATA_NAME
 
+read -p "Enable distortions. [True/False, Enter for default]:>" DISTORTIONS
+
 read -p "Pleae enter a name for the trace file. [Enter for default]:>" TRACE_FILE
 
 read -p "Please enter the number of parameter servers:>" NUM_PS
@@ -163,6 +167,8 @@ read -p "Please enter the number of workers:>" NUM_WORKER
 read -p "Please specify the server protocol. [Enter for default]:>" SERVER_PROTOCOL
 
 read -p "Enable cross replica Sync. [True/False, Enter for default]:>" CROSS_REPLICA_SYNC
+
+read -p "Enter optional description about this run:>" RUN_INFO
 
 num_of_nodes_to_run_on=`expr "$NUM_PS" + "$NUM_WORKER"`
 
@@ -223,11 +229,14 @@ fi
 if [ ! -z $DATA_NAME ]; then
   common_args=$common_args"--data-name $DATA_NAME "
 fi
+if [ ! -z $DISTORTIONS ]; then
+  common_args=$common_args"--distortions $DISTORTIONS "
+fi
 if [ ! -z "$TRACE_FILE" ]; then
   common_args=$common_args"--trace_file ${result_dir}${output_dir_name}/${TRACE_FILE} "
 fi
 if [ ! -z $SERVER_PROTOCOL ]; then
-  common_args=$common_args"--server_protocl $SERVER_PROTOCOL "
+  common_args=$common_args"--server_protocol $SERVER_PROTOCOL "
 fi
 if [ ! -z $CROSS_REPLICA_SYNC ]; then
   common_args=$common_args"--cross_replica_sync $CROSS_REPLICA_SYNC "
@@ -252,8 +261,11 @@ if [ ! -z $PS_INTER_OP_NUM_THREADS ]; then
   PS_args=$PS_args"--num_inter_threads $PS_INTER_OP_NUM_THREADS"
 fi
 
-echo $worker_args" no-of-PSs: "$NUM_PS" no-of-workers: "$NUM_WORKER >> ${result_dir}${output_dir_name}/worker_args
-echo $PS_args" no-of-PSs: "$NUM_PS" no-of-workers: "$NUM_WORKER >> ${result_dir}${output_dir_name}/PS_args
+echo "Run info: "$RUN_INFO >> ${result_dir}${output_dir_name}/run-info
+echo "Worker args: "$worker_args >> ${result_dir}${output_dir_name}/run-info
+echo "PS args: "$PS_args >> ${result_dir}${output_dir_name}/run-info
+echo "No-of-PSs: "$NUM_PS >> ${result_dir}${output_dir_name}/run-info
+echo "No-of-workers: "$NUM_WORKER >> ${result_dir}${output_dir_name}/run-info
 
 #Run the model
 first_pass=0
@@ -273,9 +285,11 @@ while [ $icount2 -lt $num_of_nodes_to_run_on ]
         first_pass=1
       fi
       #boot a worker
-      ssh ${host_array[icount2]} "nohup unbuffer python ${python_script} $worker_args \
---job_name worker --task_index $((icount2-NUM_PS)) --ps_hosts $ps_list --worker_hosts $worker_list \
-> ${result_dir}${output_dir_name}/${out_file_name} 2> ${result_dir}${output_dir_name}/${err_file_name} < /dev/null &" &
+      ssh ${host_array[icount2]} "numactl -H >> ${result_dir}${output_dir_name}/${out_file_name}; \
+nohup unbuffer python ${python_script} $worker_args --job_name worker \
+--task_index $((icount2-NUM_PS)) --ps_hosts $ps_list --worker_hosts $worker_list \
+>> ${result_dir}${output_dir_name}/${out_file_name} 2>> ${result_dir}${output_dir_name}/${err_file_name} << /dev/null &" &
     fi
     icount2=$((icount2+1))
   done
+  
