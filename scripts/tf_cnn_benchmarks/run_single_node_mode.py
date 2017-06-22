@@ -114,6 +114,8 @@ def main():
   options, args = parser.parse_args()
   if( options.cpu == None or options.model == None ):
     sys.exit("Please specify both --cpu and --model")
+  if file_location is "":
+    sys.exit("the file name and dir cannot be empty, please enter it in file_location")
   intra_op, inter_op, batch_size =init_variables(options.cpu, options.model, options.data_dir)
   print "batch_size:", batch_size
   if options.inter_op is not None:
