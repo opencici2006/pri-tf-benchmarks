@@ -4,7 +4,7 @@ from optparse import OptionParser
 import os
 import sys
 
-file_location = ""
+file_location = "/nfs/pdx/home/sfu2/nervana/git/private-tensorflow-benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks_MKL.py"
 
 def init_variables(cpu, model, dir):
   if (cpu == 'bdw' and model == 'alexnet' and dir == None) :
