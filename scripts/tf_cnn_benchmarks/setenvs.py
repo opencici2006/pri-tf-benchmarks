@@ -20,8 +20,12 @@ def setenvs(inpargv):
             args.data_dir = inpargv[i+1]
         elif inpargv[i] == '--num_omp_threads' : 
             args.num_omp_threads = inpargv[i+1]     
-    assert (args.cpu == 'knl' or args.cpu == 'bdw')
+    assert (args.cpu == 'knl' or args.cpu == 'bdw' or args.cpu == 'skx')
     if (args.cpu == 'bdw' and args.model == 'alexnet') :
+        os.environ["KMP_BLOCKTIME"] = "30"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+    elif (args.cpu == 'skx' and args.model == 'alexnet') :
         os.environ["KMP_BLOCKTIME"] = "30"
         os.environ["KMP_SETTINGS"] = "1"
         os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"

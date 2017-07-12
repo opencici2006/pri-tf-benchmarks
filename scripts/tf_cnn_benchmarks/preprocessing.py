@@ -327,8 +327,8 @@ class ImagePreprocessor(object):
       file_pattern=dataset.tf_record_pattern(subset)
       tf_dataset = tf.contrib.data.TFRecordDataset(file_pattern)
       
-      tf_dataset = tf_dataset.map(parse_example_proto, num_threads=4, output_buffer_size=64*32*2)
-      tf_dataset = tf_dataset.map(self.preprocess, num_threads=4, output_buffer_size=64*32*2)
+      tf_dataset = tf_dataset.map(parse_example_proto, num_threads=16, output_buffer_size=256*32*2)
+      tf_dataset = tf_dataset.map(self.preprocess, num_threads=16, output_buffer_size=256*32*2)
       tf_dataset = tf_dataset.batch(self.batch_size)
 
       iterator = tf_dataset.make_one_shot_iterator()

@@ -32,7 +32,14 @@ class Dataset(object):
     self.data_dir = data_dir
 
   def tf_record_pattern(self, subset):
-    return os.path.join(self.data_dir, '%s-00120-of-00128' % subset)
+    return [os.path.join(self.data_dir, '%s-00120-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00121-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00122-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00123-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00124-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00125-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00126-of-00128' % subset),
+            os.path.join(self.data_dir, '%s-00127-of-00128' % subset)]
 
   def reader(self):
     return tf.TFRecordReader()

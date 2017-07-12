@@ -4,11 +4,15 @@ from optparse import OptionParser
 import os
 import sys
 
-file_location = "/nfs/pdx/home/sfu2/nervana/git/private-tensorflow-benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks_MKL.py"
+file_location = "./tf_cnn_benchmarks_MKL.py"
 
 def init_variables(cpu, model, dir):
   if (cpu == 'bdw' and model == 'alexnet' and dir == None) :
         intra_op = 44
+        inter_op = 1
+        batch_size = 256
+  elif (cpu == 'skx' and model == 'alexnet' and dir == None) :
+        intra_op = 40
         inter_op = 1
         batch_size = 256
   elif (cpu == 'knl' and model == 'alexnet' and dir == None):
@@ -17,6 +21,10 @@ def init_variables(cpu, model, dir):
         batch_size = 256
   elif (cpu == 'bdw' and model == 'alexnet' and dir is not None) :
         intra_op = 44
+        inter_op = 2
+        batch_size = 256
+  elif (cpu == 'skx' and model == 'alexnet' and dir is not None) :
+        intra_op = 40
         inter_op = 2
         batch_size = 256
   elif (cpu == 'knl' and model == 'alexnet' and dir is not None):
