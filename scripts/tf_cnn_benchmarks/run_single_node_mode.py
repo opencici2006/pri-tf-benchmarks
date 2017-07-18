@@ -123,12 +123,12 @@ def main():
   #let's use the non-deprecated ArgumentParser object instead...
   arg_parser = ArgumentParser(description='The launchpad for all performance scripts.')
   arg_parser.add_argument('file_location', help='<path to script file>')
+  arg_parser.add_argument("model", help='Specify the model to test', choices=valid_model_vals)
+  arg_parser.add_argument('cpu', choices=valid_cpu_vals, help='Specify the target CPU')
   arg_parser.add_argument('-d','--distortions', help='Enable Distortions', action="store_true")
-  arg_parser.add_argument('-c','--cpu', dest='cpu', choices=valid_cpu_vals, help='Specify the target CPU', default=valid_cpu_vals[0])
   arg_parser.add_argument('-a', "--num_intra_threads", type=int, help="Specify the number of threads within the layer", dest="intra_op", default=None)
   arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="inter_op", default=None)
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
-  arg_parser.add_argument('-m', "--model", help='Specify the model to test', choices=valid_model_vals, dest="model", default=valid_model_vals[0])
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
   
   # With dataset name specified
@@ -150,13 +150,15 @@ def main():
   intra_op, inter_op, batch_size =init_variables(args.cpu, args.model, args.data_dir)
 
   #override variables from the command line
-  print "batch_size:", batch_size
   if args.inter_op is not None:
    inter_op = args.inter_op
   if args.intra_op is not None:
    intra_op = args.intra_op
   if args.batch_size is not None:
    batch_size = args.batch_size
+   print "Using user specified batch size: {}".format(batch_size)
+  else:
+   print "Batch size not specified. Using default for model {}: {}".format(args.model, batch_size)
 
   #TODO: validate file_location
    
