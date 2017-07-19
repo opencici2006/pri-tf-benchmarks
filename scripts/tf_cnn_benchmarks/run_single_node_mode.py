@@ -126,24 +126,27 @@ def main():
   arg_parser.add_argument("model", help='Specify the model to test', choices=valid_model_vals)
   arg_parser.add_argument('cpu', choices=valid_cpu_vals, help='Specify the target CPU')
   arg_parser.add_argument('-d','--distortions', help='Enable Distortions', action="store_true")
-  arg_parser.add_argument('-a', "--num_intra_threads", type=int, help="Specify the number of threads within the layer", dest="intra_op", default=None)
-  arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="inter_op", default=None)
-  arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
-  arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
+  arg_parser.add_argument('-a', "--num-intra-threads", type=int, help="Specify the number of threads within the layer", dest="intra_op", default=None)
+  arg_parser.add_argument('-e', "--num-inter-threads", type=int, help='Specify the number threads between layers', dest="inter_op", default=None)
+  arg_parser.add_argument('-o', "--num-omp-threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
+  arg_parser.add_argument('-b', "--batch-size", help='The batch size', type=int, dest="batch_size", default=None)
   
   # With dataset name specified
-  arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
-  arg_parser.add_argument('-n', "--data_name", help="The data name", dest="data_name", default=None)
-  arg_parser.add_argument('-f', "--data_format", help='The data format', choices=valid_format_vals, dest="data_format", default=valid_format_vals[0])
-  arg_parser.add_argument('-t', "--trace_file", help='The trace file for vtune integration', dest="trace_file", default=None)
+  arg_parser.add_argument('-i', "--data-dir", help="The data directory", dest="data_dir", default=None)
+  arg_parser.add_argument('-n', "--data-name", help="The data name", dest="data_name", default=None)
+  arg_parser.add_argument('-f', "--data-format", help='The data format', choices=valid_format_vals, dest="data_format", default=valid_format_vals[0])
+
+  #enable tracing for VTune integration
+  arg_parser.add_argument('-t', "--trace-file", help='The trace file for vtune integration', dest="trace_file", default=None)
   
   # Distributed training flags.
-  arg_parser.add_argument('-j', "--job_name", help="The job name", dest="job_name", default=None)
-  arg_parser.add_argument('-p', "--ps_hosts", help="List of Parameter server IP addresses or hostnames", dest="ps_hosts", default=None)
-  arg_parser.add_argument('-w', "--worker_hosts", help="List of Worker server IP addresses or hostnames", dest="worker_hosts", default=None)
-  arg_parser.add_argument('-x', "--task_index", type=int, help="The task index", dest="task_index", default=0)
-  arg_parser.add_argument('-s', "--server_protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
-  arg_parser.add_argument('-y', "--cross_replica_sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)
+  arg_parser.add_argument('-j', "--job-name", help="The job name", dest="job_name", default=None)
+  arg_parser.add_argument('-p', "--ps-hosts", help="List of Parameter server IP addresses or hostnames", dest="ps_hosts", default=None)
+  arg_parser.add_argument('-k', "--worker-hosts", help="List of Worker server IP addresses or hostnames", dest="worker_hosts", default=None)
+  arg_parser.add_argument('-x', "--task-index", type=int, help="The task index", dest="task_index", default=0)
+  arg_parser.add_argument('-s', "--server-protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
+  arg_parser.add_argument('-y', "--cross-replica-sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)
+  arg_parser.add_argument("--forward-only", help="Only do inference.", dest="forward_only", action='store_true')
   args = arg_parser.parse_args()
 
   #set default values based on cpu, data model and data dir
@@ -182,6 +185,9 @@ def main():
       data_format=args.data_format,
       num_intra_threads=str(intra_op),
       num_inter_threads=str(inter_op))
+
+  if args.forward_only:
+    command_prefix += ' --forward_only {}'.format(args.forward_only)
 
   if args.job_name is None:
    if args.data_dir is not None: 
