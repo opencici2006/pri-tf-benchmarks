@@ -142,10 +142,12 @@ def main():
   # Distributed training flags.
   arg_parser.add_argument('-j', "--job-name", help="The job name", dest="job_name", default=None)
   arg_parser.add_argument('-p', "--ps-hosts", help="List of Parameter server IP addresses or hostnames", dest="ps_hosts", default=None)
-  arg_parser.add_argument('-k', "--worker-hosts", help="List of Worker server IP addresses or hostnames", dest="worker_hosts", default=None)
+  arg_parser.add_argument('-w', "--worker-hosts", help="List of Worker server IP addresses or hostnames", dest="worker_hosts", default=None)
   arg_parser.add_argument('-x', "--task-index", type=int, help="The task index", dest="task_index", default=0)
   arg_parser.add_argument('-s', "--server-protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
   arg_parser.add_argument('-y', "--cross-replica-sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)
+
+  #This adds support for a --forward-only param with a default value of False. Only if '--forward-only' is on the command-line will the value be true.
   arg_parser.add_argument("--forward-only", help="Only do inference.", dest="forward_only", action='store_true')
   args = arg_parser.parse_args()
 
