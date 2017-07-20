@@ -202,6 +202,7 @@ def main():
    else:
     cmd = command_prefix
   else: 
+   if args.data_dir is not None: 
     cmd = command_prefix + (" --data_dir {data_dir}"
       " --data_name {data_name}"
       " --job_name {job_name}"  
@@ -214,6 +215,8 @@ def main():
       ps_hosts=args.ps_hosts,
       worker_hosts=args.worker_hosts,
       task_index=str(args.task_index) )
+   else:
+    cmd = command_prefix
 
   print "Running:", cmd
   os.system(cmd)
