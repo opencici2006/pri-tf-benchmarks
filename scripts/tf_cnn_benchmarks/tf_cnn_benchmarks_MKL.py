@@ -328,10 +328,10 @@ class ConvNetBuilder(object):
         biases = tf.get_variable(
             'biases', [num_out_channels], self.data_type,
             tf.constant_initializer(0.0))
-        #biased = tf.reshape(
-        biased = tf.nn.bias_add(
-                conv, biases, data_format=self.data_format)
-                #conv.get_shape())
+        biased = tf.reshape(
+                tf.nn.bias_add(
+                conv, biases, data_format=self.data_format),
+                conv.get_shape())
       else:
         self.top_layer = conv
         self.top_size = num_out_channels
@@ -1236,6 +1236,8 @@ class BenchmarkCNN(object):
 
       if self.data_format == 'NCHW' and FLAGS.data_dir is not None:
         images = tf.transpose(images, [0, 3, 1, 2])
+      if self.data_format == 'NHWC' and FLAGS.data_dir is None:
+        images = tf.transpose(images, [0, 2, 3, 1])                                                                                                           
       if input_data_type != data_type:
         images = tf.cast(images, data_type)
       network = ConvNetBuilder(
