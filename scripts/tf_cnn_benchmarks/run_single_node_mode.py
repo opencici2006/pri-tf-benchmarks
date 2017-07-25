@@ -104,19 +104,19 @@ def init_variables(cpu, model, dir):
   elif (cpu == 'bdw' and model == 'resnet50' and dir == None) :
         intra_op = 44
         inter_op = 2
-        batch_size = 32
+        batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir == None):
         intra_op = 136
         inter_op = 4
-        batch_size = 32
+        batch_size = 128
   elif (cpu == 'bdw' and model == 'resnet50' and dir is not None) :
         intra_op = 44
         inter_op = 2
-        batch_size = 32
+        batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir is not None):
         intra_op = 50
         inter_op = 4
-        batch_size = 32   
+        batch_size = 128   
   return intra_op, inter_op, batch_size
   
 def main():
