@@ -123,8 +123,9 @@ def main():
   #let's use the non-deprecated ArgumentParser object instead...
   arg_parser = ArgumentParser(description='The launchpad for all performance scripts.')
   arg_parser.add_argument('file_location', help='<path to script file>')
-  arg_parser.add_argument("model", help='Specify the model to test', choices=valid_model_vals)
-  arg_parser.add_argument('cpu', choices=valid_cpu_vals, help='Specify the target CPU')
+  #CBR: Per Ashaf request changing model and cpu back to optional parameters with bdw and alexnet default values
+  arg_parser.add_argument("-m", "--model", help='Specify the model to test', choices=valid_model_vals, default=valid_model_vals[0])
+  arg_parser.add_argument('-c', '--cpu', choices=valid_cpu_vals, help='Specify the target CPU', default=valid_cpu_vals[0])
   arg_parser.add_argument('-d','--distortions', help='Enable Distortions', action="store_true")
   arg_parser.add_argument('-a', "--num-intra-threads", type=int, help="Specify the number of threads within the layer", dest="intra_op", default=None)
   arg_parser.add_argument('-e', "--num-inter-threads", type=int, help='Specify the number threads between layers', dest="inter_op", default=None)
