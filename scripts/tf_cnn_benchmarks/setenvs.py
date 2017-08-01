@@ -46,7 +46,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"]= "34"
+          os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "68"
     elif (args.cpu =='bdw' and args.model == 'vgg11'):
@@ -60,7 +60,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"]= "34"
+          os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "68"
     elif (args.cpu =='bdw' and args.model == 'inception3'):
@@ -73,7 +73,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"]= "50"
+          os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "68"       
     elif (args.cpu =='bdw' and args.model == 'resnet50'):
@@ -86,7 +86,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"]= "50"
+          os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "136"    
     return args
