@@ -32,7 +32,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"] = "34"
+          os.environ["OMP_NUM_THREADS"] = "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "136"         
     elif (args.cpu == 'bdw' and args.model == 'googlenet'):
@@ -48,7 +48,7 @@ def setenvs(inpargv):
         elif (args.data_dir is not None):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
-          os.environ["OMP_NUM_THREADS"]= "68"
+          os.environ["OMP_NUM_THREADS"]= "66"
     elif (args.cpu =='bdw' and args.model == 'vgg11'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
@@ -75,7 +75,7 @@ def setenvs(inpargv):
         elif (args.data_dir is not None):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
-          os.environ["OMP_NUM_THREADS"]= "68"       
+          os.environ["OMP_NUM_THREADS"]= "66"       
     elif (args.cpu =='bdw' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
@@ -88,5 +88,5 @@ def setenvs(inpargv):
         elif (args.data_dir is not None):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
-          os.environ["OMP_NUM_THREADS"]= "136"    
+          os.environ["OMP_NUM_THREADS"]= "66"    
     return args
