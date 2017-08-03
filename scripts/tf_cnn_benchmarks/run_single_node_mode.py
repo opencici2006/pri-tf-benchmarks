@@ -50,16 +50,16 @@ def init_variables(cpu, model, dir):
         inter_op = 2
         batch_size = 256
   elif (cpu == 'knl' and model == 'alexnet' and dir is not None):
-        intra_op = 34
-        inter_op = 4
+        intra_op = 66
+        inter_op = 3
         batch_size = 256       
   elif (cpu == 'bdw' and model == 'googlenet' and dir == None) :
         intra_op = 44
         inter_op = 2
         batch_size = 256
   elif (cpu == 'knl' and model == 'googlenet' and dir == None):
-        intra_op = 68
-        inter_op = 2
+        intra_op = 66
+        inter_op = 4
         batch_size = 256
   elif (cpu == 'bdw' and model == 'googlenet' and dir is not None) :
         intra_op = 44
@@ -90,7 +90,7 @@ def init_variables(cpu, model, dir):
         inter_op = 2
         batch_size = 32
   elif (cpu == 'knl' and model == 'inception3' and dir == None):
-        intra_op = 68
+        intra_op = 66
         inter_op = 4
         batch_size = 32
   elif (cpu == 'bdw' and model == 'inception3' and dir is not None) :
@@ -106,8 +106,8 @@ def init_variables(cpu, model, dir):
         inter_op = 2
         batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir == None):
-        intra_op = 136
-        inter_op = 4
+        intra_op = 66
+        inter_op = 3
         batch_size = 128
   elif (cpu == 'bdw' and model == 'resnet50' and dir is not None) :
         intra_op = 44
