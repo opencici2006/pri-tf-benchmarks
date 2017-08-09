@@ -1,5 +1,5 @@
-result_dir=""
-python_script=""
+result_dir="results/"
+python_script="run_single_node_benchmark.py"
 
 if [ -z "$result_dir" ]; then
   echo "Error: path to result directory cannot be empty. Please add it in the shell script."
@@ -214,7 +214,12 @@ for i in $(echo $LSB_HOSTS | sed "s/\ /\\n/g")
 
 output_dir_name=$CPU"_"$MODEL"_"$NUM_PS"_PS_"$NUM_WORKER"_workers_"`date +%Y-%m-%d-%H-%M-%S`
 
+if [ ! -d $result_dir ]; then
+  mkdir -p $result_dir
+fi
+result_dir=`readlink -f $result_dir`/
 mkdir ${result_dir}${output_dir_name}
+python_script=`readlink -f $python_script`
 
 common_args="--model $MODEL --cpu $CPU "
 if [ ! -z $BATCH_SIZE ]; then
@@ -227,7 +232,7 @@ if [ ! -z $DATA_DIR ]; then
   common_args=$common_args"--data_dir $DATA_DIR "
 fi
 if [ ! -z $DATA_NAME ]; then
-  common_args=$common_args"--data-name $DATA_NAME "
+  common_args=$common_args"--data_name $DATA_NAME "
 fi
 if [ ! -z $DISTORTIONS ]; then
   common_args=$common_args"--distortions $DISTORTIONS "
