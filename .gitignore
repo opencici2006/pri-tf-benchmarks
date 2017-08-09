@@ -1,3 +1,4 @@
 *.pyc
 .vscode/
 .idea/
+scripts/tf_cnn_benchmarks/results
