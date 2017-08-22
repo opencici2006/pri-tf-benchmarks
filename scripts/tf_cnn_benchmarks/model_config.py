@@ -48,6 +48,8 @@ def get_model_config(model):
     mc = inception_model.Inceptionv3Model()
   elif model == 'inception4':
     mc = inception_model.Inceptionv4Model()
+  elif model == 'resnet14':  # 2 + 3 * (1 + 1 + 1 + 1)
+    mc = resnet_model.Resnetv1Model(model, (1, 1, 1, 1))
   elif model == 'resnet50':
     mc = resnet_model.Resnetv1Model(model, (3, 4, 6, 3))
   elif model == 'resnet101':
