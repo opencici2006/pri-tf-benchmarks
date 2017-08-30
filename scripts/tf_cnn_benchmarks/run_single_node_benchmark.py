@@ -29,7 +29,7 @@ The following parameters can be set:
   arg_parser.add_argument('-s', "--server_protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
   arg_parser.add_argument('-y', "--cross_replica_sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)'''
 
-valid_cpu_vals=['bdw','knl']
+valid_cpu_vals=['bdw','knl','skl','knm']
 valid_model_vals=['alexnet','googlenet','vgg11','inception3','resnet50']
 valid_protocol_vals=['grpc', 'grpc+mpi', 'grpc+verbs']
 valid_format_vals=['NCHW', 'NHWC']
@@ -40,83 +40,164 @@ def init_variables(cpu, model, dir):
   if (cpu == 'bdw' and model == 'alexnet' and dir == None) :
         intra_op = 44
         inter_op = 1
-        batch_size = 256
+        batch_size = 2048
+  elif (cpu == 'skl' and model == 'alexnet' and dir == None):
+        intra_op = 56
+        inter_op = 1
+        batch_size = 2048
   elif (cpu == 'knl' and model == 'alexnet' and dir == None):
-        intra_op = 136
+        intra_op = 68
         inter_op = 2
-        batch_size = 256
+        batch_size = 1768
+  elif (cpu == 'knm' and model == 'alexnet' and dir == None):
+        intra_op = 72
+        inter_op = 2
+        batch_size = 1728
   elif (cpu == 'bdw' and model == 'alexnet' and dir is not None) :
         intra_op = 44
         inter_op = 2
-        batch_size = 256
+        batch_size = 2048
+  elif (cpu == 'skl' and model == 'alexnet' and dir is not None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 2048
   elif (cpu == 'knl' and model == 'alexnet' and dir is not None):
-        intra_op = 66
-        inter_op = 3
-        batch_size = 256       
+        intra_op = 68
+        inter_op = 2
+        batch_size = 1024
+  elif (cpu == 'knm' and model == 'alexnet' and dir is not None):
+        intra_op = 72
+        inter_op = 2
+        batch_size = 1024
   elif (cpu == 'bdw' and model == 'googlenet' and dir == None) :
         intra_op = 44
         inter_op = 2
         batch_size = 256
+  elif (cpu == 'skl' and model == 'googlenet' and dir == None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 256
   elif (cpu == 'knl' and model == 'googlenet' and dir == None):
-        intra_op = 66
-        inter_op = 4
+        intra_op = 68
+        inter_op = 2
+        batch_size = 256
+  elif (cpu == 'knm' and model == 'googlenet' and dir == None) :
+        intra_op = 72
+        inter_op = 2
         batch_size = 256
   elif (cpu == 'bdw' and model == 'googlenet' and dir is not None) :
         intra_op = 44
-        inter_op = 8
+        inter_op = 2
+        batch_size = 256
+  elif (cpu == 'skl' and model == 'googlenet' and dir is not None) :
+        intra_op = 56
+        inter_op = 2
         batch_size = 256
   elif (cpu == 'knl' and model == 'googlenet' and dir is not None):
-        intra_op = 66
-        inter_op = 3 
+        intra_op = 68
+        inter_op = 4 
+        batch_size = 256
+  elif (cpu == 'knm' and model == 'googlenet' and dir is not None):
+        intra_op = 72
+        inter_op = 4
         batch_size = 256
   elif (cpu == 'bdw' and model == 'vgg11' and dir == None) :
         intra_op = 44
+        inter_op = 1
+        batch_size = 128
+  elif (cpu == 'skl' and model == 'vgg11' and dir == None) :
+        intra_op = 56
         inter_op = 1
         batch_size = 128
   elif (cpu == 'knl' and model == 'vgg11' and dir == None):
         intra_op = 68
         inter_op = 2
         batch_size = 128
+  elif (cpu == 'knm' and model == 'vgg11' and dir == None):
+        intra_op = 72
+        inter_op = 2
+        batch_size = 128
   elif (cpu == 'bdw' and model == 'vgg11' and dir is not None) :
         intra_op = 44
         inter_op = 2
         batch_size = 128
+  elif (cpu == 'skl' and model == 'vgg11' and dir is not None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 128
   elif (cpu == 'knl' and model == 'vgg11' and dir is not None):
-        intra_op = 66
-        inter_op = 3
+        intra_op = 68
+        inter_op = 2
+        batch_size = 128
+  elif (cpu == 'knm' and model == 'vgg11' and dir is not None):
+        intra_op = 72
+        inter_op = 2
         batch_size = 128
   elif (cpu == 'bdw' and model == 'inception3' and dir == None) :
         intra_op = 44
         inter_op = 2
-        batch_size = 32
+        batch_size = 64
+  elif (cpu == 'skl' and model == 'inception3' and dir == None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 64
   elif (cpu == 'knl' and model == 'inception3' and dir == None):
-        intra_op = 66
-        inter_op = 4
-        batch_size = 32
+        intra_op = 68
+        inter_op = 2
+        batch_size = 64
+  elif (cpu == 'knm' and model == 'inception3' and dir == None):
+        intra_op = 72
+        inter_op = 2
+        batch_size = 64
   elif (cpu == 'bdw' and model == 'inception3' and dir is not None) :
         intra_op = 44
         inter_op = 2
-        batch_size = 32
+        batch_size = 64
+  elif (cpu == 'skl' and model == 'inception3' and dir is not None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 64
   elif (cpu == 'knl' and model == 'inception3' and dir is not None):
-        intra_op = 66
-        inter_op = 3
-        batch_size = 32 
+        intra_op = 68
+        inter_op = 4
+        batch_size = 64
+  elif (cpu == 'knm' and model == 'inception3' and dir is not None):
+        intra_op = 72
+        inter_op = 4
+        batch_size = 64 
   elif (cpu == 'bdw' and model == 'resnet50' and dir == None) :
         intra_op = 44
         inter_op = 2
         batch_size = 128
+  elif (cpu == 'skl' and model == 'resnet50' and dir == None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir == None):
-        intra_op = 66
-        inter_op = 3
+        intra_op = 68
+        inter_op = 2
+        batch_size = 128
+  elif (cpu == 'knm' and model == 'resnet50' and dir == None):
+        intra_op = 72
+        inter_op = 2
         batch_size = 128
   elif (cpu == 'bdw' and model == 'resnet50' and dir is not None) :
         intra_op = 44
         inter_op = 2
         batch_size = 128
+  elif (cpu == 'skl' and model == 'resnet50' and dir is not None) :
+        intra_op = 56
+        inter_op = 2
+        batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir is not None):
-        intra_op = 66
-        inter_op = 3
+        intra_op = 68
+        inter_op = 4
         batch_size = 128   
+  elif (cpu == 'knm' and model == 'resnet50' and dir is not None):
+        intra_op = 72
+        inter_op = 4
+        batch_size = 128
+
   return intra_op, inter_op, batch_size
   
 def main():

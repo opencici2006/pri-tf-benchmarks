@@ -20,7 +20,7 @@ def setenvs(inpargv):
             args.data_dir = inpargv[i+1]
         elif inpargv[i] == '--num_omp_threads' : 
             args.num_omp_threads = inpargv[i+1]     
-    assert (args.cpu == 'knl' or args.cpu == 'bdw')
+    assert (args.cpu == 'knl' or args.cpu == 'bdw' or args.cpu == 'skl' or args.cpu == 'knm')
     if (args.cpu == 'bdw' and args.model == 'alexnet') :
         os.environ["KMP_BLOCKTIME"] = "30"
         os.environ["KMP_SETTINGS"] = "1"
@@ -34,7 +34,21 @@ def setenvs(inpargv):
         elif (args.data_dir is not None):
           os.environ["OMP_NUM_THREADS"] = "66"
         else:
-          os.environ["OMP_NUM_THREADS"]= "136"         
+          os.environ["OMP_NUM_THREADS"]= "136"        
+    elif (args.cpu == 'skl' and args.model == 'alexnet') :
+        os.environ["KMP_BLOCKTIME"] = "30"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+    elif (args.cpu == 'knm' and args.model == 'alexnet'):
+        os.environ["KMP_BLOCKTIME"] = "1"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        elif (args.data_dir is not None):
+          os.environ["OMP_NUM_THREADS"] = "36"
+        else:
+          os.environ["OMP_NUM_THREADS"]= "144" 
     elif (args.cpu == 'bdw' and args.model == 'googlenet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
@@ -49,6 +63,23 @@ def setenvs(inpargv):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "66"
+    elif (args.cpu == 'skl' and args.model == 'googlenet'):
+        os.environ["KMP_BLOCKTIME"] = "1"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["OMP_PROC_BIND"] = "true"
+        os.environ["OMP_NUM_THREADS"]= "56"
+    elif (args.cpu == 'knm' and args.model == 'googlenet'):
+        os.environ["KMP_BLOCKTIME"] = "1"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        elif (args.data_dir is not None):
+          os.environ["OMP_NUM_THREADS"]= "36"
+        else:
+          os.environ["OMP_NUM_THREADS"]= "72"
+
     elif (args.cpu =='bdw' and args.model == 'vgg11'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
@@ -63,6 +94,21 @@ def setenvs(inpargv):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "68"
+    elif (args.cpu == 'skl' and args.model == 'vgg11'):
+        os.environ["KMP_BLOCKTIME"] = "1"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+    elif (args.cpu =='knm' and args.model == 'vgg11'):
+        os.environ["KMP_BLOCKTIME"] = "1"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        elif (args.data_dir is not None):
+          os.environ["OMP_NUM_THREADS"]= "36"
+        else:
+          os.environ["OMP_NUM_THREADS"]= "72"
+
     elif (args.cpu =='bdw' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
@@ -76,6 +122,21 @@ def setenvs(inpargv):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "66"       
+    elif (args.cpu == 'skl' and args.model == 'inception3'):
+        os.environ["KMP_BLOCKTIME"] = "0"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["OMP_NUM_THREADS"]= "56"
+    elif (args.cpu =='knm' and args.model == 'inception3'):
+        os.environ["KMP_BLOCKTIME"] = "0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        elif (args.data_dir is not None):
+          os.environ["OMP_NUM_THREADS"]= "50"
+        else:
+          os.environ["OMP_NUM_THREADS"]= "72"
+
     elif (args.cpu =='bdw' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
@@ -89,4 +150,19 @@ def setenvs(inpargv):
           os.environ["OMP_NUM_THREADS"]= "66"
         else:
           os.environ["OMP_NUM_THREADS"]= "66"    
+    elif (args.cpu == 'skl' and args.model == 'resnet50'):
+        os.environ["KMP_BLOCKTIME"] = "0"
+        os.environ["KMP_SETTINGS"] = "1"
+        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["OMP_NUM_THREADS"]= "56"
+    elif (args.cpu =='knm' and args.model == 'resnet50'):
+        os.environ["KMP_BLOCKTIME"] = "0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        elif (args.data_dir is not None):
+          os.environ["OMP_NUM_THREADS"]= "50"
+        else:
+          os.environ["OMP_NUM_THREADS"]= "144"
+
     return args
