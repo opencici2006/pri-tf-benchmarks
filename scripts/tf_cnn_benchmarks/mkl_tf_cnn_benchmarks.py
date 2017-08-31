@@ -477,7 +477,7 @@ class ConvNetBuilder(object):
           num_channels_in=in_size)
       self.conv(depth_bottleneck, 3, 3, 1, 1, mode='SAME_RESNET')
       res = self.conv(depth, 1, 1, 1, 1, activation=None)
-      output = tf.nn.relu(shortcut + res)
+      output = tf.nn.relu(tf.add_n([shortcut, res]))
       self.top_layer = output
       self.top_size = depth
       return output
