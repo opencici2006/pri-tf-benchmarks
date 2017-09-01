@@ -254,7 +254,7 @@ def main():
   #TODO: validate file_location
    
   command_prefix = "python " + args.file_location + " "
-  if args.cpu == 'knl': 
+  if args.cpu in ['knl', 'knm']: 
      command_prefix = 'numactl -m 1 ' + command_prefix
   if args.trace_file is not None:
      command_prefix = command_prefix + '--trace_file ' + args.trace_file
