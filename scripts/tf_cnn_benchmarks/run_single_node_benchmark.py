@@ -190,7 +190,7 @@ def init_variables(cpu, model, dir):
         inter_op = 2
         batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir is not None):
-        intra_op = 66
+        intra_op = 67
         inter_op = 3
         batch_size = 128   
   elif (cpu == 'knm' and model == 'resnet50' and dir is not None):
