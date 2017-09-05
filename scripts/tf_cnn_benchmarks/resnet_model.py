@@ -67,4 +67,6 @@ class Resnetv1Model(model_lib.Model):
     for i in xrange(self.layer_counts[3]):
       stride = 2 if i == 0 else 1
       cnn.resnet_bottleneck_v1(2048, 512, stride)
-    cnn.spatial_mean()
+    #cnn.spatial_mean()
+    cnn.apool(7, 7, 1, 1)
+    cnn.reshape([128, 2048])
