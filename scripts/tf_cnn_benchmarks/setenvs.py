@@ -147,7 +147,7 @@ def setenvs(inpargv):
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
-          os.environ["OMP_NUM_THREADS"]= "66"
+          os.environ["OMP_NUM_THREADS"]= "67"
         else:
           os.environ["OMP_NUM_THREADS"]= "66"    
     elif (args.cpu == 'skl' and args.model == 'resnet50'):
