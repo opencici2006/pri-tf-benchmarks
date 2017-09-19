@@ -180,10 +180,11 @@ def setenvs(inpargv):
         else:
           os.environ["OMP_NUM_THREADS"]= "144"
 
-    # TF_ADJUST_HUE_FUSED will skip expensive data conversion from RGB2HSV and
-    # then HSV2RGB. The fused function is NOT implemented on GPU, it is 
-    # off by default. Since this benchmark is running on CPU, we should always 
-    # turn it on
+    # TF_ADJUST_HUE_FUSED and TF_ADJUST_SATURATION_FUSED will skip expensive data 
+    # conversion from RGB2HSV and then HSV2RGB. The fused function is NOT 
+    # implemented on GPU, it is off by default. Since this benchmark is running 
+    # on CPU, we should always turn it on.
     os.environ["TF_ADJUST_HUE_FUSED"] = "1"
+    os.environ["TF_ADJUST_SATURATION_FUSED"] = "1"
     
     return args
