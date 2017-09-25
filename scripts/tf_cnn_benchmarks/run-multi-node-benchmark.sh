@@ -62,12 +62,14 @@ fi
 read -p $'Please specify the CPU you would like to run on: 
 [0] BDW 
 [1] KNL 
-[2] SKL\n>' usrCPU
+[2] SKL
+[3] KNM\n>' usrCPU
 
 case $usrCPU in
   0) CPU="bdw";;
   1) CPU="knl";;
   2) CPU="skl";;
+  3) CPU="knm";;
 esac
 
 if [ -z $CPU ]; then
@@ -179,6 +181,21 @@ read -p "Please enter the number of parameter servers:>" NUM_PS
 
 read -p "Please enter the number of workers:>" NUM_WORKER
 
+CONNECTION="Ethernet"
+read -p $"Please specify the network connection. [Default is $CONNECTION]:
+[0] Ethernet
+[1] OPA
+>" usrCONNECTION
+
+if [ ! -z $usrCONNECTION ]; then
+  case $usrCONNECTION in
+    0) CONNECTION="Ethernet";;
+    1) CONNECTION="OPA";;
+  esac
+else
+  usrCONNECTION=0
+fi
+
 read -p "Please specify the server protocol. [Enter for default]:>" SERVER_PROTOCOL
 
 read -p "Enable cross replica Sync. [True/False, Enter for default]:>" CROSS_REPLICA_SYNC
@@ -205,6 +222,10 @@ for i in $(echo $LSB_HOSTS | sed "s/\ /\\n/g")
     break
   fi
   
+  if [ $usrCONNECTION -eq 1 ]; then # OPA is 1
+    i=$i"hib0"
+  fi
+
   if [ "$HOSTNAME" = "$i" ]; then
     cur_node_indx=$icount 
   fi
@@ -227,7 +248,7 @@ for i in $(echo $LSB_HOSTS | sed "s/\ /\\n/g")
   icount=$((icount+1))
  done
 
-output_dir_name=$CPU"_"$MODEL"_"$NUM_PS"_PS_"$NUM_WORKER"_workers_"`date +%Y-%m-%d-%H-%M-%S`
+output_dir_name=$CPU"_"$MODEL"_"$NUM_PS"_PS_"$NUM_WORKER"_workers_"$CONNECTION"_"`date +%Y-%m-%d-%H-%M-%S`
 
 if [ ! -d $result_dir ]; then
   mkdir -p $result_dir
@@ -286,6 +307,7 @@ echo "Worker args: "$worker_args >> ${result_dir}${output_dir_name}/run-info
 echo "PS args: "$PS_args >> ${result_dir}${output_dir_name}/run-info
 echo "No-of-PSs: "$NUM_PS >> ${result_dir}${output_dir_name}/run-info
 echo "No-of-workers: "$NUM_WORKER >> ${result_dir}${output_dir_name}/run-info
+echo "Connection type: "$CONNECTION >> ${result_dir}${output_dir_name}/run-info
 
 #Run the model
 first_pass=0
