@@ -49,7 +49,7 @@ import sys
 args=arglist()
 
 tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
-
+tf.flags.DEFINE_string('cpu', 'bdw', 'name of the cpu model to run')
 # The code will first check if it's running under benchmarking mode
 # or evaluation mode, depending on FLAGS.eval:
 # Under the evaluation mode, this script will read a saved model,
