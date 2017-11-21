@@ -39,11 +39,11 @@ def setenvs(inpargv):
     if (args.cpu == 'bdw' and args.model == 'alexnet') :
         os.environ["KMP_BLOCKTIME"] = "30"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
     elif (args.cpu == 'knl' and args.model == 'alexnet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
@@ -53,11 +53,11 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'alexnet') :
         os.environ["KMP_BLOCKTIME"] = "30"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
     elif (args.cpu == 'knm' and args.model == 'alexnet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
         elif (args.data_dir is not None):
@@ -67,11 +67,11 @@ def setenvs(inpargv):
     elif (args.cpu == 'bdw' and args.model == 'googlenet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"
     elif (args.cpu == 'knl' and args.model == 'googlenet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
@@ -81,13 +81,13 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'googlenet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"
         os.environ["OMP_PROC_BIND"] = "true"
         os.environ["OMP_NUM_THREADS"]= "56"
     elif (args.cpu == 'knm' and args.model == 'googlenet'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
         elif (args.data_dir is not None):
@@ -98,11 +98,11 @@ def setenvs(inpargv):
     elif (args.cpu =='bdw' and args.model == 'vgg11'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
     elif (args.cpu =='knl' and args.model == 'vgg11'):    
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
@@ -112,11 +112,11 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'vgg11'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
     elif (args.cpu =='knm' and args.model == 'vgg11'):
         os.environ["KMP_BLOCKTIME"] = "1"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
         elif (args.data_dir is not None):
@@ -127,10 +127,10 @@ def setenvs(inpargv):
     elif (args.cpu =='bdw' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"     
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"     
     elif (args.cpu =='knl' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
@@ -140,11 +140,11 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"
         os.environ["OMP_NUM_THREADS"]= "56"
     elif (args.cpu =='knm' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
         elif (args.data_dir is not None):
@@ -155,10 +155,10 @@ def setenvs(inpargv):
     elif (args.cpu =='bdw' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"
     elif (args.cpu =='knl' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
         elif (args.data_dir is not None):
@@ -168,17 +168,19 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,noverbose,compact,1,0"
         os.environ["OMP_NUM_THREADS"]= "56"
     elif (args.cpu =='knm' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
-        os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]= "granularity=fine,noverbose,compact,1,0"
         if (args.num_omp_threads is not None):
           os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
         elif (args.data_dir is not None):
           os.environ["OMP_NUM_THREADS"]= "50"
         else:
           os.environ["OMP_NUM_THREADS"]= "144"
+
+    os.environ["KMP_SETTINGS"] = "0"
 
     # TF_ADJUST_HUE_FUSED and TF_ADJUST_SATURATION_FUSED will skip expensive data 
     # conversion from RGB2HSV and then HSV2RGB. The fused function is NOT 
