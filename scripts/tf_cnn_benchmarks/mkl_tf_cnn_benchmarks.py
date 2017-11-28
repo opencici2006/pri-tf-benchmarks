@@ -37,8 +37,6 @@ args = arglist()
 flags.define_flags()
 for name in flags.param_specs.keys():
   absl_flags.declare_key_flag(name)
-
-
 def main(positional_arguments):
   global args
   args = setenvs(sys.argv)
