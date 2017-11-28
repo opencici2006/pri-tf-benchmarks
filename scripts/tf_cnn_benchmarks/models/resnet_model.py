@@ -73,7 +73,7 @@ def bottleneck_block_v1(cnn, depth, depth_bottleneck, stride):
              use_batch_norm=True, bias=None)
     res = cnn.conv(depth, 1, 1, 1, 1, activation=None,
                    use_batch_norm=True, bias=None)
-    output = tf.nn.relu(shortcut + res)
+    output = tf.nn.relu(tf.add_n([shortcut, res]))
     cnn.top_layer = output
     cnn.top_size = depth
 
@@ -179,7 +179,7 @@ def residual_block(cnn, depth, stride, pre_activation):
   else:
     res = cnn.conv(depth, 3, 3, 1, 1, activation=None,
                    use_batch_norm=True, bias=None)
-    output = tf.nn.relu(shortcut + res)
+    output = tf.nn.relu(tf.add_n([shortcut, res]))
   cnn.top_layer = output
   cnn.top_size = depth
 
@@ -222,7 +222,9 @@ class ResnetModel(model_lib.Model):
     if self.pre_activation:
       cnn.batch_norm()
       cnn.top_layer = tf.nn.relu(cnn.top_layer)
-    cnn.spatial_mean()
+    # cnn.spatial_mean()
+    cnn.apool(7, 7, 1, 1)
+    cnn.reshape([self.batch_size, 2048])
 
   def get_learning_rate(self, global_step, batch_size):
     num_batches_per_epoch = (

@@ -52,6 +52,8 @@ _ParamSpec = namedtuple('_ParamSpec',
 
 # _DEFAULT_PARAMS maps from each parameter's name to its _ParamSpec.
 _DEFAULT_PARAMS = {
+    'cpu':
+        _ParamSpec('string', 'bdw', 'name of the CPU'),
     'model':
         _ParamSpec('string', 'trivial', 'name of the model to run'),
 
