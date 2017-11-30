@@ -46,7 +46,7 @@ import sys
 args=arglist()
 
 
-tf.flags.DEFINE_string('model_file', '/nfs/site/home/sfu2/int8/test/test_graph.pb',
+tf.flags.DEFINE_string('model_file', '/nfs/site/home/sfu2/int8/test/quantized_graph.pb',
                        """The quantized model file.""")
 
 tf.flags.DEFINE_string('input_binary', False,
@@ -55,8 +55,8 @@ tf.flags.DEFINE_string('input_binary', False,
 tf.flags.DEFINE_string('image_size', None,
                        """The image size.""")
 
-tf.flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 10,
+tf.flags.DEFINE_integer('batch_size', 1, 'batch size per compute device')
+tf.flags.DEFINE_integer('num_batches', 1,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -93,6 +93,11 @@ tf.flags.DEFINE_integer('num_inter_threads', 0,
                        parallelism. If set to 0, the system will pick
                        an appropriate number.""")
 
+tf.flags.DEFINE_string('timeline', None,
+                       """The file name for time line.""")
+
+tf.flags.DEFINE_string('tensorboard', 'tensorboard',
+                       """The direcotry for tensorboard.""")
 
 FLAGS = tf.flags.FLAGS
 
@@ -219,7 +224,6 @@ if __name__ == "__main__":
       raise ValueError('Unknown dataset. Must be one of imagenet or flowers.')
 
   image_size = 299
-  batch_size = 1
   input_layer = "input"
   output_layer = "InceptionV3/Predictions/Reshape_1"
 
@@ -240,15 +244,17 @@ if __name__ == "__main__":
   if args.image_size:
     image_size = args.image_size
 
+
+  batch_size = FLAGS.batch_size
   if args.batch_size:
-    image_size = args.batch_size
+    batch_size = args.batch_size
 
   if args.input_layer:
     input_layer = args.input_layer
   if args.output_layer:
     output_layer = args.output_layer
 
-  print( "Loading the quantized model\n" )
+  print( "Loading the quantized model" )
 
   graph = load_graph(model_file)
 
@@ -264,10 +270,29 @@ if __name__ == "__main__":
   sess = tf.Session()
   result = sess.run(images)
 
-  print("start inference\n")
-  for step in xrange(FLAGS.num_batches):
-    print("Step: ", step)
-    with tf.Session(graph=graph) as sess:
-      results = sess.run(output_operation.outputs[0],
-                      {input_operation.outputs[0]: result})
+  options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+  run_metadata = tf.RunMetadata()
+
+  print("start inference")
+  with tf.Session(graph=graph) as sess:
+    for step in xrange(FLAGS.num_batches):
+      print("Step: ", step)
+    
+      if FLAGS.timeline:
+        results = sess.run(output_operation.outputs[0],
+                        {input_operation.outputs[0]: result},
+                         options = options, run_metadata = run_metadata
+                        )
+      else:
+        results = sess.run(output_operation.outputs[0],
+                        {input_operation.outputs[0]: result})
+
+    if FLAGS.tensorboard:
+      file_writer = tf.summary.FileWriter(FLAGS.tensorboard + '/graph',
+                                      sess.graph)
+  if FLAGS.timeline:
+    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+    chrome_trace = fetched_timeline.generate_chrome_trace_format()
+    with open(FLAGS.timeline, 'w') as f:
+      f.write(chrome_trace)
 
