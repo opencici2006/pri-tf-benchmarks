@@ -46,22 +46,22 @@ import sys
 args=arglist()
 
 
-tf.flags.DEFINE_string('model_file', '/nfs/site/home/sfu2/int8/test/quantized_graph.pb',
+tf.flags.DEFINE_string('model_file', '/home/vrane/code/int8/quantized_graph.pb',
                        """The quantized model file.""")
 
-tf.flags.DEFINE_string('input_binary', False,
+tf.flags.DEFINE_boolean('input_binary', False,
                        """The input model file is in binary format or not.""")
 
 tf.flags.DEFINE_string('image_size', None,
                        """The image size.""")
 
 tf.flags.DEFINE_integer('batch_size', 1, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 1,
+tf.flags.DEFINE_integer('num_batches', 10,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
 
-tf.flags.DEFINE_string('data_dir', '/dataset/sfu2/imagenet-data', """Path to dataset in TFRecord format
+tf.flags.DEFINE_string('data_dir', '/data/imagenet-data', """Path to dataset in TFRecord format
                        (aka Example protobufs). If not specified,
                        synthetic data will be used.""")
 tf.flags.DEFINE_string('data_name', 'imagenet',
@@ -93,16 +93,16 @@ tf.flags.DEFINE_integer('num_inter_threads', 0,
                        parallelism. If set to 0, the system will pick
                        an appropriate number.""")
 
-tf.flags.DEFINE_string('timeline', None,
+tf.flags.DEFINE_string('timeline', 'quantized_timeline.json',
                        """The file name for time line.""")
 
 tf.flags.DEFINE_string('tensorboard', 'tensorboard',
                        """The direcotry for tensorboard.""")
 
 FLAGS = tf.flags.FLAGS
+FLAGS(sys.argv)
 
 log_fn = print   # tf.logging.info
-
 
 def get_image_and_label(dataset, input_nchan, image_size, batch_size,
                         input_data_type, resize_method):
@@ -277,7 +277,7 @@ if __name__ == "__main__":
   with tf.Session(graph=graph) as sess:
     for step in xrange(FLAGS.num_batches):
       print("Step: ", step)
-    
+
       if FLAGS.timeline:
         results = sess.run(output_operation.outputs[0],
                         {input_operation.outputs[0]: result},
