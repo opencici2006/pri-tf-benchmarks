@@ -1,0 +1,332 @@
+
+{
+    "optimization_parameters": {
+        "bdw": {
+            "alexnet": {
+                "intra_op": 44,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "30",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "googlenet": {
+                "intra_op": 44,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "vgg11": {
+                "intra_op": 44,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "vgg16": {
+                "intra_op": 44,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "inception3": {
+                "intra_op": 44,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "resnet50": {
+                "intra_op": 44,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "resnet101": {
+                "intra_op": 44,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            }
+        },
+        "knl": {
+            "alexnet": {
+                "intra_op": {
+                    "dummydata": 136,
+                    "realdata": 66
+                },
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 3
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "136",
+                    "realdata": "66"
+                }
+            },
+            "googlenet": {
+                "intra_op": 66,
+                "inter_op": {
+                    "dummydata": 4,
+                    "realdata": 3
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": "66"
+            },
+            "vgg11": {
+                "intra_op": {
+                    "dummydata": 68,
+                    "realdata":66
+                },
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 3
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "68",
+                    "realdata": "66"
+                }
+            },
+            "vgg16": {
+                "intra_op": {
+                    "dummydata": 68,
+                    "realdata":66
+                },
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 3
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "68",
+                    "realdata": "66"
+                }
+            },
+            "inception3": {
+                "intra_op": 66,
+                "inter_op": {
+                    "dummydata": 4,
+                    "realdata": 3
+                },
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": "66"
+            },
+            "resnet50": {
+                "intra_op": {
+                    "dummydata": 66,
+                    "realdata":67
+                },
+                "inter_op": 3,
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": "66"
+            },
+            "resnet101": {
+                "intra_op": {
+                    "dummydata": 66,
+                    "realdata":67
+                },
+                "inter_op": 3,
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": "66"
+            }
+        },
+        "skl": {
+            "alexnet": {
+                "intra_op": 56,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "30",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "googlenet": {
+                "intra_op": 56,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_PROC_BIND": "true",
+                "OMP_NUM_THREADS": "56"
+            },
+            "vgg11": {
+                "intra_op": 56,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "vgg16": {
+                "intra_op": 56,
+                "inter_op": {
+                    "dummydata": 1,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0"
+            },
+            "inception3": {
+                "intra_op": 56,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_PROC_BIND": "true",
+                "OMP_NUM_THREADS": "56"
+            },
+            "resnet50": {
+                "intra_op": 56,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_PROC_BIND": "true",
+                "OMP_NUM_THREADS": "56"
+            },
+            "resnet101": {
+                "intra_op": 56,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "0",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_PROC_BIND": "true",
+                "OMP_NUM_THREADS": "56"
+            }
+        },
+        "knm": {
+            "alexnet": {
+                "intra_op": 72,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "70",
+                    "realdata": "66"
+                }
+            },
+            "googlenet": {
+                "intra_op": 72,
+                "inter_op": {
+                    "dummydata": 4,
+                    "realdata": 2
+                },
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "72",
+                    "realdata": "36"
+                }
+            },
+            "vgg11": {
+                "intra_op": 72,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "68",
+                    "realdata": "66"
+                }
+            },
+            "vgg16": {
+                "intra_op": 72,
+                "inter_op": 2,
+                "KMP_BLOCKTIME": "1",
+                "KMP_SETTINGS": "1",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "68",
+                    "realdata": "66"
+                }
+            },
+            "inception3": {
+                "intra_op": 72,
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 4
+                },
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": "66"
+            },
+            "resnet50": {
+                "intra_op": 72,
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 4
+                },
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "144",
+                    "realdata": "50"
+                }
+            },
+            "resnet101": {
+                "intra_op": 72,
+                "inter_op": {
+                    "dummydata": 2,
+                    "realdata": 4
+                },
+                "KMP_BLOCKTIME": "0",
+                "KMP_AFFINITY": "granularity=fine,verbose,compact,1,0",
+                "OMP_NUM_THREADS": {
+                    "dummydata": "144",
+                    "realdata": "50"
+                }
+            }
+        }
+    },
+    "model_parameters": {
+        "alexnet": {
+            "batch_size": 256
+        },
+        "googlenet": {
+            "batch_size": 96
+        },
+        "vgg11": {
+            "batch_size": 128
+        },
+        "vgg16": {
+            "batch_size": 128
+        },
+        "inception3": {
+            "batch_size": 32
+        },
+        "resnet50": {
+            "batch_size": 64
+        }
+    }
+}
