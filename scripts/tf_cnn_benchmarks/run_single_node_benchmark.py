@@ -30,6 +30,8 @@ The following parameters can be set:
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
   arg_parser.add_argument('-m', "--model", help='Specify the model to test', choices=valid_model_vals, dest="model", default=valid_model_vals[0])
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
+  arg_parser.add_argument('-nb', "--num_batches", help='number of batches to run excluding warmup', type=int, dest="num_batches", default=None)
+  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=None)
   
   # With dataset name specified
   arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
@@ -235,6 +237,8 @@ def main():
   arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="inter_op", default=None)
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
+  arg_parser.add_argument('-nb', "--num_batches", help='number of batches to run excluding warmup', type=int, dest="num_batches", default=100)
+  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=None)
   
   # With dataset name specified
   arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
@@ -285,13 +289,17 @@ def main():
       ' --batch_size {batch_size}'
       ' --data_format {data_format}'
       ' --num_intra_threads {num_intra_threads}'
+      ' --num_batches {num_batches}'
+      ' --num_warmup_batches {num_warmup_batches}'
       ' --num_inter_threads {num_inter_threads}').format(
       model=args.model,
       cpu=args.cpu,
       batch_size=str(batch_size),
       data_format=args.data_format,
       num_intra_threads=str(intra_op),
-      num_inter_threads=str(inter_op))
+      num_inter_threads=str(inter_op),
+      num_warmup_batches=str(args.num_warmup_batches),
+      num_batches=str(args.num_batches))
 
   if args.forward_only:
     command_prefix += ' --forward_only {}'.format(args.forward_only)
