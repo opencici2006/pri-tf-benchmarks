@@ -30,8 +30,8 @@ The following parameters can be set:
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
   arg_parser.add_argument('-m', "--model", help='Specify the model to test', choices=valid_model_vals, dest="model", default=valid_model_vals[0])
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
-  arg_parser.add_argument('-nb', "--num_batches", help='number of batches to run excluding warmup', type=int, dest="num_batches", default=None)
-  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=None)
+  arg_parser.add_argument('-nb', "--num_batches", help='number of batches to run excluding warmup', type=int, dest="num_batches", default=100)
+  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=0)
   
   # With dataset name specified
   arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
@@ -238,7 +238,7 @@ def main():
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads", default=None)
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=None)
   arg_parser.add_argument('-nb', "--num_batches", help='number of batches to run excluding warmup', type=int, dest="num_batches", default=100)
-  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=None)
+  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=0)
   
   # With dataset name specified
   arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
