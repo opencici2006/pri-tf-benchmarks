@@ -87,7 +87,7 @@ _DEFAULT_PARAMS = {
                    'number of groups of batches processed in the image '
                    'producer.'),
     'num_batches':
-        _ParamSpec('integer', 100, 'number of batches to run, excluding '
+        _ParamSpec('integer', 1, 'number of batches to run, excluding '
                    'warmup'),
     'num_warmup_batches':
         _ParamSpec('integer', None, 'number of batches to run before timing'),
@@ -98,7 +98,7 @@ _DEFAULT_PARAMS = {
     'gpu_indices':
         _ParamSpec('string', '', 'indices of worker GPUs in ring order'),
     'display_every':
-        _ParamSpec('integer', 10,
+        _ParamSpec('integer', 1,
                    'Number of local steps after which progress is printed out'),
     'data_dir':
         _ParamSpec('string', None,
@@ -201,7 +201,7 @@ _DEFAULT_PARAMS = {
                    'example, if there are two tasks, each can be allocated '
                    '~40 percent of the memory on a single machine'),
     'use_tf_layers':
-        _ParamSpec('boolean', True,
+        _ParamSpec('boolean', False,
                    'If True, use tf.layers for neural network layers. This '
                    'should not affect performance or accuracy in any way.'),
     'tf_random_seed':
@@ -1230,7 +1230,7 @@ class BenchmarkCNN(object):
   def _build_model(self):
     """Build the TensorFlow graph."""
     tf.set_random_seed(self.params.tf_random_seed)
-    np.random.seed(4321)
+    np.random.seed(self.params.tf_random_seed)
     phase_train = not (self.params.eval or self.params.forward_only)
 
     log_fn('Generating model')
@@ -1427,7 +1427,7 @@ class BenchmarkCNN(object):
     assert not self.params.staged_vars
 
     tf.set_random_seed(self.params.tf_random_seed)
-    np.random.seed(4321)
+    np.random.seed(self.params.tf_random_seed)
     phase_train = True
 
     log_fn('Generating model')

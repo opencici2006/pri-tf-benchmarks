@@ -158,9 +158,10 @@ class ConvNetBuilder(object):
       input_layer = self.top_layer
     if num_channels_in is None:
       num_channels_in = self.top_size
-    kernel_initializer = None
+    kernel_initializer = tf.constant_initializer(0.5)
     if stddev is not None:
-      kernel_initializer = tf.truncated_normal_initializer(stddev=stddev)
+      # kernel_initializer = tf.truncated_normal_initializer(stddev=stddev)
+      kernel_initializer = tf.constant_initializer(0.5)
     name = 'conv' + str(self.counts['conv'])
     self.counts['conv'] += 1
     with tf.variable_scope(name):
@@ -311,7 +312,8 @@ class ConvNetBuilder(object):
       kernel = self.get_variable(
           'weights', [num_channels_in, num_out_channels],
           self.variable_dtype, self.dtype,
-          initializer=tf.truncated_normal_initializer(stddev=stddev))
+          initializer=tf.constant_initializer(0.5))
+          # initializer=tf.truncated_normal_initializer(stddev=stddev))
       biases = self.get_variable('biases', [num_out_channels],
                                  self.variable_dtype, self.dtype,
                                  initializer=tf.constant_initializer(bias))

@@ -709,18 +709,29 @@ class SyntheticImagePreprocessor(object):
   def minibatch(self, dataset, subset, use_datasets, cache_data,
                 shift_ratio=-1):
     """Get synthetic image batches."""
+    print "============SyntheticImagePreprocessor : minibatch ============================"
     del subset, use_datasets, cache_data, shift_ratio
     input_shape = [self.batch_size, self.height, self.width, self.depth]
-    images = tf.truncated_normal(
-        input_shape,
+    # images = tf.truncated_normal(
+    #     input_shape,
+    #     dtype=self.dtype,
+    #     stddev=1e-1,
+    #     name='synthetic_images')
+    images = tf.constant(
+        0.5,
         dtype=self.dtype,
-        stddev=1e-1,
+        shape=input_shape,
         name='synthetic_images')
-    labels = tf.random_uniform(
-        [self.batch_size],
-        minval=0,
-        maxval=dataset.num_classes - 1,
+    # labels = tf.random_uniform(
+    #     [self.batch_size],
+    #     minval=0,
+    #     maxval=dataset.num_classes - 1,
+    #     dtype=tf.int32,
+    #     name='synthetic_labels')
+    labels = tf.constant(
+        dataset.num_classes - 1,
         dtype=tf.int32,
+        shape=[self.batch_size],
         name='synthetic_labels')
     # Note: This results in a H2D copy, but no computation
     # Note: This avoids recomputation of the random values, but still
