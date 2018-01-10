@@ -98,7 +98,7 @@ tf.flags.DEFINE_string('resize_method', 'bilinear',
                        while the other modes support any sizes and apply
                        random bbox distortions
                        before resizing (even with --nodistortions).""")
-tf.flags.DEFINE_boolean('distortions', False,
+tf.flags.DEFINE_boolean('distortions', True,
                         """Enable/disable distortions during
                        image preprocessing. These include bbox and color
                        distortions.""")
