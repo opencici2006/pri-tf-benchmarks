@@ -42,8 +42,10 @@ class ConvNetBuilder(object):
                variable_dtype=tf.float32):
     self.top_layer = input_op
     self.top_size = input_nchan
-    self.phase_train = phase_train
-    self.use_tf_layers = use_tf_layers
+    # self.phase_train = phase_train
+    self.phase_train = False
+    # self.use_tf_layers = use_tf_layers
+    self.use_tf_layers = False
     self.data_format = data_format
     self.dtype = dtype
     self.variable_dtype = variable_dtype
@@ -430,6 +432,7 @@ class ConvNetBuilder(object):
           input_layer, gamma, beta, mean=moving_mean,
           variance=moving_variance, epsilon=epsilon,
           data_format=self.data_format, is_training=False)
+
     return bn
 
   def batch_norm(self, input_layer=None, decay=0.999, scale=False,

@@ -96,7 +96,7 @@ class Inceptionv3Model(model.Model):
         cnn.conv(768, 5, 5, mode='VALID', stddev=0.01)
         cnn.reshape([-1, 768])
 
-    cnn.use_batch_norm = True
+    cnn.use_batch_norm = False
     cnn.conv(32, 3, 3, 2, 2, mode='VALID')   # 299 x 299 x 3
     cnn.conv(32, 3, 3, 1, 1, mode='VALID')   # 149 x 149 x 32
     cnn.conv(64, 3, 3, 1, 1, mode='SAME')    # 147 x 147 x 64
@@ -186,7 +186,7 @@ class Inceptionv4Model(model.Model):
                                       ('conv', 256, 1, 3)]]
       cnn.inception_module('incept_v4_c', cols)
 
-    cnn.use_batch_norm = True
+    cnn.use_batch_norm = False
     cnn.conv(32, 3, 3, 2, 2, mode='VALID')
     cnn.conv(32, 3, 3, 1, 1, mode='VALID')
     cnn.conv(64, 3, 3)
