@@ -25,6 +25,7 @@ from collections import defaultdict
 import os
 import threading
 import time
+import ast
 
 import numpy as np
 
@@ -42,6 +43,15 @@ import datasets
 import model_config
 import preprocessing
 import variable_mgr
+
+import horovod.tensorflow as hvd
+
+hvd.init()
+MPI_RANK = int(hvd.rank())
+MPI_LOCAL_RANK = int(hvd.local_rank())
+MPI_SIZE = int(hvd.size())
+print("SIZE:")
+print(MPI_SIZE)
 
 from setenvs import setenvs
 from setenvs import arglist
@@ -63,7 +73,7 @@ tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
 tf.flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 100,
+tf.flags.DEFINE_integer('num_batches', 14400,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -88,15 +98,15 @@ tf.flags.DEFINE_string('resize_method', 'bilinear',
                        while the other modes support any sizes and apply
                        random bbox distortions
                        before resizing (even with --nodistortions).""")
-tf.flags.DEFINE_boolean('distortions', True,
+tf.flags.DEFINE_boolean('distortions', False,
                         """Enable/disable distortions during
                        image preprocessing. These include bbox and color
                        distortions.""")
-tf.flags.DEFINE_string('local_parameter_device', 'gpu',
+tf.flags.DEFINE_string('local_parameter_device', 'cpu',
                        """Device to use as parameter server: cpu or gpu.
                           For distributed training, it can affect where caching
                           of variables happens.""")
-tf.flags.DEFINE_string('device', 'gpu',
+tf.flags.DEFINE_string('device', 'cpu',
                        """Device to use for computation: cpu or gpu""")
 tf.flags.DEFINE_string('data_format', 'NCHW',
                        """Data layout to use: NHWC (TF native)
@@ -116,13 +126,17 @@ tf.flags.DEFINE_string('graph_file', None,
                        """Write the model's graph definition to this
                        file. Defaults to binary format unless filename ends
                        in 'txt'.""")
-tf.flags.DEFINE_string('optimizer', 'sgd',
+tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
-tf.flags.DEFINE_float('learning_rate', None,
+tf.flags.DEFINE_string('list_iters_when_decay', None,
+                      """List of steps after which learning rate decays.""")
+tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
+                      """Number of iters for gradual lr warmup.""")
+tf.flags.DEFINE_float('learning_rate', 0.1,
                       """Initial learning rate for training.""")
 tf.flags.DEFINE_float('num_epochs_per_decay', 0,
                       """Steps after which learning rate decays.""")
-tf.flags.DEFINE_float('learning_rate_decay_factor', 0.94,
+tf.flags.DEFINE_float('learning_rate_decay_factor', 0.1,
                       """Learning rate decay factor.""")
 tf.flags.DEFINE_float('momentum', 0.9, """Momentum for training.""")
 tf.flags.DEFINE_float('rmsprop_decay', 0.9, """Decay term for RMSProp.""")
@@ -130,7 +144,7 @@ tf.flags.DEFINE_float('rmsprop_momentum', 0.9, """Momentum in RMSProp.""")
 tf.flags.DEFINE_float('rmsprop_epsilon', 1.0, """Epsilon term for RMSProp.""")
 tf.flags.DEFINE_float('gradient_clip', None, """Gradient clipping magnitude.
                        Disabled by default.""")
-tf.flags.DEFINE_float('weight_decay', 0.00004,
+tf.flags.DEFINE_float('weight_decay', 0.0001,
                       """Weight decay factor for training.""")
 
 # Performance tuning flags.
@@ -165,7 +179,7 @@ tf.flags.DEFINE_boolean('force_gpu_compatible', True,
 #       cross_replica_sync=true. Unlike 'replicated', currently never uses
 #       nccl all-reduce for replicating within a server.
 tf.flags.DEFINE_string(
-    'variable_update', 'parameter_server',
+    'variable_update', 'independent',
     ('The method for managing variables: '
      'parameter_server, replicated, distributed_replicated, independent'))
 tf.flags.DEFINE_boolean(
@@ -183,13 +197,13 @@ tf.flags.DEFINE_string('server_protocol', 'grpc', 'protocol for servers')
 tf.flags.DEFINE_boolean('cross_replica_sync', True, '')
 
 # Summary and Save & load checkpoints.
-tf.flags.DEFINE_integer('summary_verbosity', 0,
+tf.flags.DEFINE_integer('summary_verbosity', 1,
                         """Verbosity level for summary ops. Pass 0 to disable
                         both summaries and checkpoints.""")
-tf.flags.DEFINE_integer('save_summaries_steps', 0,
+tf.flags.DEFINE_integer('save_summaries_steps', 1000,
                         """How often to save summaries for trained models.
                         Pass 0 to disable summaries.""")
-tf.flags.DEFINE_integer('save_model_secs', 0,
+tf.flags.DEFINE_integer('save_model_secs', 3600,
                         """How often to save trained models. Pass 0 to disable
                         checkpoints""")
 tf.flags.DEFINE_string('train_dir', None,
@@ -200,6 +214,14 @@ tf.flags.DEFINE_string('pretrain_dir', None,
                        """Path to pretrained session checkpoints.""")
 
 FLAGS = tf.flags.FLAGS
+
+if "TF_SPLIT_DB" in os.environ:
+  from distutils.dir_util import copy_tree
+  fromDirectory = FLAGS.data_dir+'/'+str(MPI_RANK)
+  toDirectory = "/tmp/TF-"+str(MPI_RANK)
+
+  copy_tree(fromDirectory, toDirectory)
+
 
 log_fn = print   # tf.logging.info
 
@@ -262,8 +284,8 @@ class ConvNetBuilder(object):
     self.data_format = data_format
     self.data_type = data_type
     self.counts = defaultdict(lambda: 0)
-    self.use_batch_norm = False
-    self.batch_norm_config = {}  # 'decay': 0.997, 'scale': True}
+    self.use_batch_norm = False 
+    self.batch_norm_config = {'decay': 1.000, 'scale': True}  # 'decay': 0.997, 'scale': True}
     self.channel_pos = (
         'channels_last' if data_format == 'NHWC' else 'channels_first')
 
@@ -743,7 +765,7 @@ class BenchmarkCNN(object):
     # number of GPUs.
     if FLAGS.batch_size > 0:
       self.model_conf.set_batch_size(FLAGS.batch_size)
-    self.batch_size = self.model_conf.get_batch_size() * FLAGS.num_gpus
+    self.batch_size = self.model_conf.get_batch_size()
 
     # Use the learning rate from the command line if specified, otherwise use
     # the model's default learning rate, which must always be set.
@@ -757,6 +779,11 @@ class BenchmarkCNN(object):
     self.dataset = None
     self.data_name = FLAGS.data_name
     if FLAGS.data_dir is not None:
+      if "TF_SPLIT_DB" in os.environ: 
+        #self.dir_path = FLAGS.data_dir+'/'+str(MPI_RANK)
+        self.dir_path = "/tmp/TF-"+str(MPI_RANK)
+      else:
+        self.dir_path = FLAGS.data_dir
       if self.data_name is None:
         if 'imagenet' in FLAGS.data_dir:
           self.data_name = 'imagenet'
@@ -766,7 +793,7 @@ class BenchmarkCNN(object):
           raise ValueError('Could not identify name of dataset. '
                            'Please specify with --data_name option.')
       if self.data_name == 'imagenet':
-        self.dataset = datasets.ImagenetData(FLAGS.data_dir)
+        self.dataset = datasets.ImagenetData(self.dir_path) #FLAGS.data_dir)
       elif self.data_name == 'flowers':
         self.dataset = datasets.FlowersData(FLAGS.data_dir)
       else:
@@ -857,8 +884,8 @@ class BenchmarkCNN(object):
     """Print basic information."""
     log_fn('Model:       %s' % self.model)
     log_fn('Mode:        %s' % get_mode_from_flags())
-    log_fn('Batch size:  %s global' % self.batch_size)
-    log_fn('             %s per device' % (self.batch_size / len(self.devices)))
+    log_fn('Batch size:  %s global' % (self.batch_size * MPI_SIZE))
+    log_fn('             %s per device' % (self.batch_size))
     log_fn('Devices:     %s' % self.raw_devices)
     log_fn('Data format: %s' % self.data_format)
     log_fn('Optimizer:   %s' % FLAGS.optimizer)
@@ -1035,7 +1062,7 @@ class BenchmarkCNN(object):
              (global_step_watcher.steps_per_second() * self.batch_size))
       log_fn('-' * 64)
       # Save the model checkpoint.
-      if FLAGS.train_dir is not None and is_chief:
+      if FLAGS.train_dir is not None and (MPI_RANK == 0):
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         if not gfile.Exists(FLAGS.train_dir):
           gfile.MakeDirs(FLAGS.train_dir)
@@ -1107,6 +1134,25 @@ class BenchmarkCNN(object):
           update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, name_scope)
           staging_delta_ops = list(self.variable_mgr.staging_delta_ops)
 
+    learning_rate = self.model_conf.get_learning_rate()
+    if FLAGS.list_iters_when_decay != "None":
+      learning_rate = tf.train.gradual_warmup_then_step(
+                   FLAGS.learning_rate, FLAGS.num_iters_for_grad_warmup, FLAGS.learning_rate*self.batch_size*MPI_SIZE/256,
+                   global_step, FLAGS.learning_rate_decay_factor, ast.literal_eval(FLAGS.list_iters_when_decay))
+      #learning_rate = tf.Print(learning_rate, [learning_rate], "LR is: ")
+    if FLAGS.optimizer == 'momentum':
+      opt = tf.train.MomentumOptimizer(
+          learning_rate, FLAGS.momentum, use_nesterov=True)
+    elif FLAGS.optimizer == 'sgd':
+      opt = tf.train.GradientDescentOptimizer(learning_rate)
+    elif FLAGS.optimizer == 'rmsprop':
+      opt = tf.train.RMSPropOptimizer(learning_rate, FLAGS.rmsprop_decay,
+                                      momentum=FLAGS.rmsprop_momentum,
+                                      epsilon=FLAGS.rmsprop_epsilon)
+    else:
+      raise ValueError('Optimizer "%s" was not recognized', FLAGS.optimizer)
+    opt = hvd.DistributedOptimizer(opt)
+
     if not update_ops:
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, name_scope)
     enqueue_ops.append(tf.group(*gpu_copy_stage_ops))
@@ -1138,9 +1184,12 @@ class BenchmarkCNN(object):
       with tf.device(device):
         total_loss = tf.reduce_mean(losses)
         avg_grads = self.variable_mgr.get_gradients_to_apply(d, gradient_state)
+        with tf.name_scope(opt._name + "_Allreduce"):
+          avg_grads = [(hvd.allreduce(gradient, device_dense=opt._device_dense,
+                             device_sparse=opt._device_sparse), var)
+                  for (gradient, var) in avg_grads]
 
         gradient_clip = FLAGS.gradient_clip
-        learning_rate = self.model_conf.get_learning_rate()
         if self.dataset and FLAGS.num_epochs_per_decay > 0:
           num_batches_per_epoch = (
               self.dataset.num_examples_per_epoch() / self.batch_size)
@@ -1159,20 +1208,8 @@ class BenchmarkCNN(object):
         else:
           clipped_grads = avg_grads
 
-        if FLAGS.optimizer == 'momentum':
-          opt = tf.train.MomentumOptimizer(
-              learning_rate, FLAGS.momentum, use_nesterov=True)
-        elif FLAGS.optimizer == 'sgd':
-          opt = tf.train.GradientDescentOptimizer(learning_rate)
-        elif FLAGS.optimizer == 'rmsprop':
-          opt = tf.train.RMSPropOptimizer(learning_rate, FLAGS.rmsprop_decay,
-                                          momentum=FLAGS.rmsprop_momentum,
-                                          epsilon=FLAGS.rmsprop_epsilon)
-        else:
-          raise ValueError('Optimizer "%s" was not recognized', FLAGS.optimizer)
+        training_ops.append(opt.apply_gradients(clipped_grads))
 
-        self.variable_mgr.append_apply_gradients_ops(
-            gradient_state, opt, clipped_grads, training_ops)
     train_op = tf.group(*(training_ops + update_ops + extra_nccl_ops))
 
     with tf.device(self.cpu_device):

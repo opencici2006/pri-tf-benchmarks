@@ -17,6 +17,7 @@
 """
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
+from random import randint
 
 from tensorflow.python.ops import data_flow_ops
 import cnn_util
@@ -133,18 +134,25 @@ def eval_image(image, height, width, bbox, thread_id, resize):
       # distorted_image = tf.image.resize_image_with_crop_or_pad(image,
       #                                                         height, width)
       shape = tf.shape(image)
+      image = tf.cond(tf.less(shape[0], shape[1]),
+                        lambda: tf.image.resize_images(image, tf.convert_to_tensor([256, 256*shape[1]/shape[0]], dtype=tf.int32)),
+                        lambda: tf.image.resize_images(image, tf.convert_to_tensor([256*shape[0]/shape[1], 256], dtype=tf.int32)))
+      shape = tf.shape(image)
+      
       y0 = (shape[0] - height) // 2
       x0 = (shape[1] - width) // 2
-      # distorted_image = tf.slice(image, [y0,x0,0], [height,width,3])
+      #y0=tf.random_uniform([],minval=0,maxval=(shape[0] - height + 1), dtype=tf.int32)
+      #x0=tf.random_uniform([],minval=0,maxval=(shape[1] - width + 1), dtype=tf.int32)
+      ## distorted_image = tf.slice(image, [y0,x0,0], [height,width,3])
       distorted_image = tf.image.crop_to_bounding_box(image, y0, x0, height,
                                                       width)
     else:
       sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
           tf.shape(image),
           bounding_boxes=bbox,
-          min_object_covered=0.1,
-          aspect_ratio_range=[0.75, 1.33],
-          area_range=[0.05, 1.0],
+          min_object_covered=0.5,
+          aspect_ratio_range=[0.90, 1.10],
+          area_range=[0.10, 1.0],
           max_attempts=100,
           use_image_if_no_bounding_boxes=True)
       bbox_begin, bbox_size, _ = sample_distorted_bounding_box
@@ -222,7 +230,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         tf.shape(image),
         bounding_boxes=bbox,
         min_object_covered=0.1,
-        aspect_ratio_range=[0.75, 1.33],
+        aspect_ratio_range=[0.99, 1.01],
         area_range=[0.05, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
@@ -359,7 +367,7 @@ class ImagePreprocessor(object):
       labels = [[] for i in range(self.device_count)]
       record_input = data_flow_ops.RecordInput(
           file_pattern=dataset.tf_record_pattern(subset),
-          seed=301,
+          seed=randint(0, 9000),
           parallelism=64,
           buffer_size=10000,
           batch_size=self.batch_size,

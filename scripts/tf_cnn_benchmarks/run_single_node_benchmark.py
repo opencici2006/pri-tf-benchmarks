@@ -1,18 +1,4 @@
-# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
+#!/usr/bin/python
 import platform
 from argparse import ArgumentParser
 import os
@@ -41,7 +27,11 @@ The following parameters can be set:
   arg_parser.add_argument('-w', "--worker_hosts", help="List of Worker server IP addresses or hostnames", dest="worker_hosts", default=None)
   arg_parser.add_argument('-x', "--task_index", type=int, help="The task index", dest="task_index", default=0)
   arg_parser.add_argument('-s', "--server_protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
-  arg_parser.add_argument('-y', "--cross_replica_sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)'''
+  arg_parser.add_argument('-y', "--cross_replica_sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)
+
+  # Large batch training flags.
+  arg_parser.add_argument('-l', "--list_iters_when_decay", help="List of iter numbers when do step decay", dest="list_iters_when_decay", default=None)
+  arg_parser.add_argument('-g', "--num_iters_for_grad_warmup", help="Number of iterations to warm up learning rate", dest="num_iters_for_grad_warmup", default=0)'''
 
 valid_cpu_vals=['bdw','knl','skl','knm']
 valid_model_vals=['alexnet','googlenet','vgg11','inception3','resnet50']
@@ -204,7 +194,7 @@ def init_variables(cpu, model, dir):
         inter_op = 2
         batch_size = 128
   elif (cpu == 'knl' and model == 'resnet50' and dir is not None):
-        intra_op = 67
+        intra_op = 66
         inter_op = 3
         batch_size = 128   
   elif (cpu == 'knm' and model == 'resnet50' and dir is not None):
@@ -221,9 +211,6 @@ def main():
   script = "mkl_tf_cnn_benchmarks.py"
   if path != '':
     script=os.path.dirname(__file__)+"/"+script
-  if ( not os.path.isfile(script)):
-    print "Could not find the python script. Please make sure that mkl_tf_cnn_benchmarks.py is in the same directory as run_single_node_benchmark.py."
-    sys.exit(0)
   arg_parser.add_argument("--file_location", help='<path to script file>', default=script)
   #CBR: Per Ashaf request changing model and cpu back to optional parameters with bdw and alexnet default values
   arg_parser.add_argument("-m", "--model", help='Specify the model to test', choices=valid_model_vals, default=valid_model_vals[0])
@@ -250,6 +237,10 @@ def main():
   arg_parser.add_argument('-s', "--server_protocol", choices=valid_protocol_vals, help="Protocol to use between servers", dest="server_protocol", default=valid_protocol_vals[0])
   arg_parser.add_argument('-y', "--cross_replica_sync", help="Use cross replica sync? True or false.", dest="cross_replica_sync", default=True)
 
+  # Large batch training flags.
+  arg_parser.add_argument('-l', "--list_iters_when_decay", help="List of iter numbers when do step decay", dest="list_iters_when_decay", default=None)
+  arg_parser.add_argument('-g', "--num_iters_for_grad_warmup", help="Number of iterations to warm up learning rate", dest="num_iters_for_grad_warmup", default=0)
+
   #This adds support for a --forward-only param with a default value of False. Only if '--forward-only' is on the command-line will the value be true.
   arg_parser.add_argument("--forward_only", help="Only do inference.", dest="forward_only", default=False)
   args = arg_parser.parse_args()
@@ -269,10 +260,13 @@ def main():
    print "Batch size not specified. Using default for model {}: {}".format(args.model, batch_size)
 
   #TODO: validate file_location
-   
+  os.system("numactl -H | grep available | awk ' {print $2} ' > /tmp/tmp111")
+  numa_num = int(open('/tmp/tmp111', 'r').read())
+  os.remove('/tmp/tmp111')
+
   command_prefix = "python " + args.file_location + " "
   if args.cpu in ['knl', 'knm']: 
-     command_prefix = 'numactl -m 1 ' + command_prefix
+     command_prefix = 'numactl -p ' + str(numa_num - 1) + ' ' + command_prefix
   if args.trace_file is not None:
      command_prefix = command_prefix + '--trace_file ' + args.trace_file
   if args.num_omp_threads is not None:
@@ -283,13 +277,17 @@ def main():
       ' --batch_size {batch_size}'
       ' --data_format {data_format}'
       ' --num_intra_threads {num_intra_threads}'
-      ' --num_inter_threads {num_inter_threads}').format(
+      ' --num_inter_threads {num_inter_threads}'
+      ' --list_iters_when_decay {list_iters_when_decay}'
+      ' --num_iters_for_grad_warmup {num_iters_for_grad_warmup}').format(
       model=args.model,
       cpu=args.cpu,
       batch_size=str(batch_size),
       data_format=args.data_format,
       num_intra_threads=str(intra_op),
-      num_inter_threads=str(inter_op))
+      num_inter_threads=str(inter_op),
+      list_iters_when_decay=args.list_iters_when_decay,
+      num_iters_for_grad_warmup=args.num_iters_for_grad_warmup)
 
   if args.forward_only:
     command_prefix += ' --forward_only {}'.format(args.forward_only)

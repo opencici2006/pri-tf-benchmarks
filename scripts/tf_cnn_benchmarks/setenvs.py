@@ -185,5 +185,6 @@ def setenvs(inpargv):
     # off by default. Since this benchmark is running on CPU, we should always 
     # turn it on
     os.environ["TF_ADJUST_HUE_FUSED"] = "1"
+    os.environ["TF_ADJUST_SATURATION_FUSED"] = "1"
     
     return args
