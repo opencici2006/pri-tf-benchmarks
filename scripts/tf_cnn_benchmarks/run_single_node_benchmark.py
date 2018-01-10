@@ -54,10 +54,7 @@ valid_format_vals=['NCHW', 'NHWC']
 with open(os.path.abspath(os.path.dirname(__file__)) +"/"+ "parameters.json") as param_file:
   parameters = json.load(param_file)
 
-def get_optimization_parameter(cpu, model, dir, param, default=None):
-  '''initialize the performance parameters based on values passed in. For now, we only initialize the number of intra_op and inter_op threads'''
-  data_type = "dummydata" if dir is None else "realdata"
-  value = parameters["optimization_parameters"][cpu][model]
+def get_param(value, param_name, data_type, default = None):
   if param in value:
     value = value[param]
     if type(value) is dict:
@@ -65,6 +62,17 @@ def get_optimization_parameter(cpu, model, dir, param, default=None):
     return value
   else:
     return default
+
+def get_optimization_parameter(cpu, model, dir, param_name, default=None):
+  '''initialize the performance parameters based on values passed in. For now, we only initialize the number of intra_op and inter_op threads'''
+  data_type = "dummy_data" if dir is None else "real_data"
+  value = get_param(parameters["optimization_parameters"], param_name, data_type)
+  value = get_param(parameters["optimization_parameters"][cpu], param_name, data_type, value)
+  value = get_param(parameters["optimization_parameters"][cpu][model], param_name, data_type, value)
+  if value is None:
+    return default
+  else:
+    return value
 
 def get_model_default_parameter(model, parameter_name, default=None):
   '''initialize the model hyper-parameters based on values passed in.'''
@@ -152,11 +160,6 @@ def main():
   if args.cpu in ['knl', 'knm']: 
      command_prefix = 'numactl -m 1 ' + command_prefix
 
-      ' --num_batches {num_batches}'
-      ' --num_warmup_batches {num_warmup_batches}'
-      num_inter_threads=str(inter_op))
-      num_warmup_batches=str(args.num_warmup_batches),
-      num_batches=str(args.num_batches))
   for arg in vars(args):
     if getattr(args, arg) is not None:
       if arg not in script_args_blacklist:
@@ -168,6 +171,7 @@ def main():
     print "Running with real data from:", args.data_dir
   else:
     print "Running with dummy data"
+  sys.stdout.flush()
   os.system(cmd)
 
 if __name__ == "__main__":
