@@ -44,6 +44,7 @@ import datasets
 import variable_mgr
 from cnn_util import log_fn
 from models import model_config
+import itt
 
 # _ParamSpec describes one of BenchmarkCNN's parameters. _ParamSpec is the value
 # type for _DEFAULT_PARAMS below.
@@ -392,6 +393,7 @@ def define_flags():
 
 FLAGS = tf.flags.FLAGS
 
+domain = itt.domain_create("domain")
 
 class GlobalStepWatcher(threading.Thread):
   """A helper class for globe_step.
@@ -528,11 +530,16 @@ def benchmark_one_step(sess,
     run_metadata = None
   summary_str = None
   start_time = time.time()
+
+  itt.task_begin(domain, "iteration")
+
   if summary_op is None:
     results = sess.run(fetches, options=run_options, run_metadata=run_metadata)
   else:
     (results, summary_str) = sess.run(
         [fetches, summary_op], options=run_options, run_metadata=run_metadata)
+
+  itt.task_end(domain)
 
   if not params.forward_only:
     lossval = results['total_loss']

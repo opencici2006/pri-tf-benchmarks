@@ -24,6 +24,8 @@ class arglist :
     model = 'alexnet'
     data_dir = None
     num_omp_threads = None
+    kmp_affinity = None
+
 def setenvs(inpargv):
     args = arglist()
     for i in range(0,len(inpargv)-1) :
@@ -35,6 +37,8 @@ def setenvs(inpargv):
             args.data_dir = inpargv[i+1]
         elif inpargv[i] == '--num_omp_threads' : 
             args.num_omp_threads = inpargv[i+1]     
+        elif inpargv[i] == '--kmp_affinity' : 
+            args.kmp_affinity = inpargv[i+1]     
     assert (args.cpu == 'knl' or args.cpu == 'bdw' or args.cpu == 'skl' or args.cpu == 'knm')
     if (args.cpu == 'bdw' and args.model == 'alexnet') :
         os.environ["KMP_BLOCKTIME"] = "30"
@@ -168,8 +172,11 @@ def setenvs(inpargv):
     elif (args.cpu == 'skl' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
-        os.environ["OMP_NUM_THREADS"]= "56"
+        if (args.kmp_affinity is not None):
+          os.environ["KMP_AFFINITY"]= args.kmp_affinity
+        else:
+          os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
+        os.environ["OMP_NUM_THREADS"]= args.num_omp_threads
     elif (args.cpu =='knm' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
