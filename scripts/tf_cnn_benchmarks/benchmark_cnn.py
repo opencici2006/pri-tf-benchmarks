@@ -477,7 +477,7 @@ def create_config_proto(params):
     params: Params tuple, typically created by make_params or
             make_params_from_flags.
   """
-  config = tf.ConfigProto()
+  config = tf.ConfigProto(device_count = {'NUMA':2})
   config.allow_soft_placement = True
   config.intra_op_parallelism_threads = params.num_intra_threads
   config.inter_op_parallelism_threads = params.num_inter_threads
@@ -488,6 +488,7 @@ def create_config_proto(params):
   if params.xla:
     config.graph_options.optimizer_options.global_jit_level = (
         tf.OptimizerOptions.ON_1)
+
   return config
 
 
