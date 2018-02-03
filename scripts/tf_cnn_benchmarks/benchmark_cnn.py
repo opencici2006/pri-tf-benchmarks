@@ -59,6 +59,7 @@ _DEFAULT_NUM_BATCHES = 100
 # TODO(reedwm): add upper_bound and lower_bounds to appropriate integer and
 # float flags, and change certain string flags to enum flags.
 
+flags.DEFINE_string('cpu', 'skl', 'name of the cpu to run on')
 flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 
 # The code will first check if it's running under benchmarking mode
