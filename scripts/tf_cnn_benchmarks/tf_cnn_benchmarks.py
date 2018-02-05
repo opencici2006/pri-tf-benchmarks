@@ -31,9 +31,11 @@ from cnn_util import log_fn
 
 
 flags.define_flags()
-    # Use the batch size from the command line if specified, otherwise use the
+
 for name in flags.param_specs.keys():
   absl_flags.declare_key_flag(name)
+
+
 def main(positional_arguments):
   # Command-line arguments like '--distortions False' are equivalent to
   # '--distortions=True False', where False is a positional argument. To prevent

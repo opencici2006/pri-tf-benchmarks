@@ -374,6 +374,15 @@ flags.DEFINE_integer('save_summaries_steps', 0,
 flags.DEFINE_integer('save_model_secs', 0,
                      'How often to save trained models. Pass 0 to disable '
                      'checkpoints.')
+
+flags.DEFINE_integer('save_model_steps', 0,
+                     'How often to save trained models. Pass 0 to disable '
+                     'checkpoints.')
+flags.DEFINE_integer('evaluate_every', 0,
+                     'How often(iterations) to evaluate model checkpoints.'
+                     'It must be equale to/multiple of save_model_steps')
+flags.DEFINE_boolean('final_evaluation', False,
+                     'Evaluate model after training.')
 flags.DEFINE_string('train_dir', None,
                     'Path to session checkpoints. Pass None to disable saving '
                     'checkpoint at the end.')
@@ -409,6 +418,8 @@ class GlobalStepWatcher(threading.Thread):
     self.start_step = 0
     self.finish_time = 0
     self.finish_step = 0
+    self.paused_time = 0
+    self.summary_paused_time = 0
 
   def run(self):
     while self.finish_time == 0:
@@ -425,8 +436,14 @@ class GlobalStepWatcher(threading.Thread):
       if self.finish_time == 0 and global_step_val >= self.end_at_global_step:
         tf.logging.info('Finishing real work at step %s at time %s' %
                         (global_step_val, time.ctime()))
-        self.finish_time = time.time()
+        self.finish_time = time.time() - self.summary_paused_time
         self.finish_step = global_step_val
+
+  def pause(self):
+    self.paused_time = time.time()
+
+  def resume(self):
+    self.summary_paused_time += time.time() - self.paused_time
 
   def done(self):
     return self.finish_time > 0
@@ -574,7 +591,6 @@ def benchmark_one_step(sess,
       trace_file.write(trace.generate_chrome_trace_format(show_memory=True))
   return summary_str
 
-
 def get_perf_timing_str(batch_size, step_train_times, scale=1):
   times = np.array(step_train_times)
   speeds = batch_size / times
@@ -597,7 +613,7 @@ def load_checkpoint(saver, sess, ckpt_dir):
       model_checkpoint_path = ckpt.model_checkpoint_path
     else:
       # Restores from checkpoint with relative path.
-      model_checkpoint_path = os.path.join(ckpt_dir, ckpt.model_checkpoint_path)
+      model_checkpoint_path = os.path.abspath(ckpt.model_checkpoint_path)
     # Assuming model_checkpoint_path looks something like:
     #   /my-favorite-path/imagenet_train/model.ckpt-0,
     # extract global_step from it.
@@ -839,6 +855,8 @@ class BenchmarkCNN(object):
       ValueError: Unsupported params settings.
     """
     self.params = params
+    if self.params.evaluate_every != 0:
+      assert self.params.evaluate_every % self.params.save_model_steps == 0
     self.dataset = dataset or datasets.create_dataset(self.params.data_dir,
                                                       self.params.data_name)
     self.model = model or model_config.get_model_config(self.params.model,
@@ -1232,6 +1250,16 @@ class BenchmarkCNN(object):
       log_fn('total images/sec: %.2f' % images_per_sec)
       log_fn('-' * 64)
 
+  def _eval_during_training(self):
+    eval_batch_size = 50
+    eval_iterations = int(self.dataset.num_examples_per_epoch(subset="validation") / eval_batch_size)
+    eval_params = self.params._replace(eval=True)
+    eval_params = eval_params._replace(display_every=eval_iterations+1)
+    eval_params = eval_params._replace(num_batches=eval_iterations)
+    eval_params = eval_params._replace(batch_size=eval_batch_size)
+    bench_eval = BenchmarkCNN(eval_params)
+    bench_eval.run()
+
   def _benchmark_cnn(self):
     """Run cnn in benchmark mode. Skip the backward pass if forward_only is on.
 
@@ -1397,6 +1425,7 @@ class BenchmarkCNN(object):
           sess = tf_debug.TensorBoardDebugWrapperSession(sess,
                                                          self.params.debugger)
       loop_start_time = time.time()
+      eval_time = 0
       while not done_fn():
         if local_step == 0:
           log_fn('Done warm up')
@@ -1414,6 +1443,7 @@ class BenchmarkCNN(object):
           # reset times to ignore warm up batch
           step_train_times = []
           loop_start_time = time.time()
+          eval_time = 0
         if (summary_writer and
             (local_step + 1) % self.params.save_summaries_steps == 0):
           fetch_summary = summary_op
@@ -1424,10 +1454,27 @@ class BenchmarkCNN(object):
             self.batch_size * (self.num_workers if self.single_session else 1),
             step_train_times, self.trace_filename, image_producer, self.params,
             fetch_summary)
+        eval_start_time = time.time()
+        if global_step_watcher:
+          global_step_watcher.pause()
+        if (is_chief and local_step > 0 and
+            self.params.save_model_steps > 0 and
+            (local_step+1) % self.params.save_model_steps == 0 and
+            self.params.train_dir is not None):
+          checkpoint_path = os.path.join(self.params.train_dir, 'model.ckpt-iter')
+          if not gfile.Exists(self.params.train_dir):
+            gfile.MakeDirs(self.params.train_dir)
+          sv.saver.save(sess, checkpoint_path, global_step)
+          if (self.params.evaluate_every > 0 and
+             (local_step+1) % self.params.evaluate_every == 0):
+            self._eval_during_training()
+        eval_time += time.time() - eval_start_time
+        if global_step_watcher:
+          global_step_watcher.resume()
         if summary_str is not None and is_chief:
           sv.summary_computed(sess, summary_str)
         local_step += 1
-      loop_end_time = time.time()
+      loop_end_time = time.time() - eval_time
       # Waits for the global step to be done, regardless of done_fn.
       if global_step_watcher:
         while not global_step_watcher.done():
@@ -1459,6 +1506,9 @@ class BenchmarkCNN(object):
         if not gfile.Exists(self.params.train_dir):
           gfile.MakeDirs(self.params.train_dir)
         sv.saver.save(sess, checkpoint_path, global_step)
+        #Evaluate at the end of training
+        if self.params.final_evaluation:
+          self._eval_during_training()
 
       if execution_barrier:
         # Wait for other workers to reach the end, so this worker doesn't
