@@ -1,4 +1,5 @@
 #!/bin/python
+
 # Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,8 +56,8 @@ with open(os.path.abspath(os.path.dirname(__file__)) +"/"+ "parameters.json") as
   parameters = json.load(param_file)
 
 def get_param(value, param_name, data_type, default = None):
-  if param in value:
-    value = value[param]
+  if param_name in value:
+    value = value[param_name]
     if type(value) is dict:
       value = value[data_type]
     return value
