@@ -133,8 +133,6 @@ def main():
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'intra_op'))
   arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="num_inter_threads",
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'inter_op'))
-  arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', type=int, dest="num_omp_threads",
-                          default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'OMP_NUM_THREADS'))
 
   #enable tracing for VTune integration
   arg_parser.add_argument('-t', "--trace_file", help='The trace file for vtune integration', dest="trace_file", default=None)
