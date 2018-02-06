@@ -302,12 +302,12 @@ def main():
       num_batches=str(args.num_batches))
 
   if args.forward_only:
-    command_prefix += ' --forward_only {}'.format(args.forward_only)
+    command_prefix += ' --forward_only={}'.format(args.forward_only)
 
   if args.data_dir is not None: 
     command_prefix = command_prefix + (' --data_dir {data_dir}'
       ' --data_name {data_name}' 
-      ' --distortions {distortions}').format(
+      ' --distortions={distortions}').format(
       data_dir=args.data_dir,
       data_name=args.data_name,
       distortions=str(args.distortions) )
