@@ -29,19 +29,19 @@ import cnn_util
 import flags
 from cnn_util import log_fn
 
-from setenvs import setenvs
-from setenvs import arglist
-import sys
-args = arglist()
+# from setenvs import setenvs
+# from setenvs import arglist
+# import sys
+# args = arglist()
 
 flags.define_flags()
 for name in flags.param_specs.keys():
   absl_flags.declare_key_flag(name)
 
 def main(positional_arguments):
-  global args
-  args = setenvs(sys.argv)
-  print('Running on CPU :', args.cpu)
+  # global args
+  # args = setenvs(sys.argv)
+  # print('Running on CPU :', args.cpu)
 
   # Command-line arguments like '--distortions False' are equivalent to
   # '--distortions=True False', where False is a positional argument. To prevent
