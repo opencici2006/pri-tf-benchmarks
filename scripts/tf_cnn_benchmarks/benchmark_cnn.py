@@ -61,7 +61,8 @@ _DEFAULT_NUM_BATCHES = 100
 
 flags.DEFINE_string('cpu', 'skl', 'name of the cpu to run on')
 flags.DEFINE_string('model', 'trivial', 'name of the model to run')
-
+flags.DEFINE_integer('num_omp_threads', 56,
+                     'Number of openmp threads to use')
 # The code will first check if it's running under benchmarking mode
 # or evaluation mode, depending on 'eval':
 # Under the evaluation mode, this script will read a saved model,

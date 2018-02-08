@@ -141,7 +141,10 @@ def setenvs(inpargv):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
         os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
-        os.environ["OMP_NUM_THREADS"]= "56"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads
+        else:          
+          os.environ["OMP_NUM_THREADS"]= "56"
     elif (args.cpu =='knm' and args.model == 'inception3'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
@@ -169,7 +172,10 @@ def setenvs(inpargv):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_SETTINGS"] = "1"
         os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
-        os.environ["OMP_NUM_THREADS"]= "56"
+        if (args.num_omp_threads is not None):
+          os.environ["OMP_NUM_THREADS"] = args.num_omp_threads 
+        else:
+          os.environ["OMP_NUM_THREADS"]= "56"
     elif (args.cpu =='knm' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"

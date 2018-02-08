@@ -52,7 +52,7 @@ valid_model_vals=['alexnet','googlenet','vgg11','inception3','resnet50']
 valid_protocol_vals=['grpc', 'grpc+mpi', 'grpc+verbs']
 valid_format_vals=['NCHW', 'NHWC']
 
-def init_variables(cpu, model, dir):
+def init_variables(cpu, model, dir, socket_one):
   '''initialize the performance parameters based on values passed in. For now, we only initialize the number of intra_op and inter_op threads, 
   and the batch size'''
   if (cpu == 'bdw' and model == 'alexnet' and dir == None) :
@@ -155,7 +155,11 @@ def init_variables(cpu, model, dir):
         intra_op = 44
         inter_op = 2
         batch_size = 64
-  elif (cpu == 'skl' and model == 'inception3' and dir == None) :
+  elif (cpu == 'skl' and model == 'inception3' and dir == None and socket_one) :
+        intra_op = 56
+        inter_op = 1
+        batch_size = 128
+  elif (cpu == 'skl' and model == 'inception3' and dir == None and not socket_one) :
         intra_op = 56
         inter_op = 2
         batch_size = 64
@@ -187,7 +191,11 @@ def init_variables(cpu, model, dir):
         intra_op = 44
         inter_op = 2
         batch_size = 128
-  elif (cpu == 'skl' and model == 'resnet50' and dir == None) :
+  elif (cpu == 'skl' and model == 'resnet50' and dir == None and socket_one) :
+        intra_op = 56
+        inter_op = 1
+        batch_size = 128
+  elif (cpu == 'skl' and model == 'resnet50' and dir == None and not socket_one) :
         intra_op = 56
         inter_op = 2
         batch_size = 128
@@ -258,10 +266,13 @@ def main():
 
   #This adds support for a --forward-only param with a default value of False. Only if '--forward-only' is on the command-line will the value be true.
   arg_parser.add_argument("--forward_only", help="Only do inference.", dest="forward_only", default=False)
+  
+  #This adds support for a --single_socket param with a default value of False. Only if '--single_socket' is on the command-line will the value be true.
+  arg_parser.add_argument("--single_socket", help="Do inference on one socket only.", dest="single_socket", default=False)
   args = arg_parser.parse_args()
 
   #set default values based on cpu, data model and data dir
-  intra_op, inter_op, batch_size =init_variables(args.cpu, args.model, args.data_dir)
+  intra_op, inter_op, batch_size =init_variables(args.cpu, args.model, args.data_dir, args.single_socket)
 
   #override variables from the command line
   if args.inter_op is not None:
@@ -279,6 +290,8 @@ def main():
   command_prefix = "python " + args.file_location + " "
   if args.cpu in ['knl', 'knm']: 
      command_prefix = 'numactl -m 1 ' + command_prefix
+  if args.single_socket and args.cpu in ['skl']:
+     command_prefix = 'numactl --cpunodebind=0 --membind=0 ' + command_prefix + '--num_omp_threads ' + '28'
   if args.trace_file is not None:
      command_prefix = command_prefix + '--trace_file ' + args.trace_file
   if args.num_omp_threads is not None:
