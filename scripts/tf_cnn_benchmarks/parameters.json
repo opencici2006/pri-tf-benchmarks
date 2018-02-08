@@ -296,7 +296,7 @@
             "batch_size": 128
         },
         "inception3": {
-            "batch_size": 32
+            "batch_size": 64
         },
         "resnet50": {
             "batch_size": 128
