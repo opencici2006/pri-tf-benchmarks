@@ -52,7 +52,7 @@ valid_model_vals=['alexnet','googlenet','vgg11','vgg16','inception3','resnet50',
 valid_protocol_vals=['grpc', 'grpc+mpi', 'grpc+verbs']
 valid_format_vals=['NCHW', 'NHWC']
 
-with open(os.path.abspath(os.path.dirname(__file__)) +"/"+ "parameters.json") as param_file:
+with open(os.path.abspath(os.path.dirname(__file__)) +"/"+ "mkl_parameters.json") as param_file:
   parameters = json.load(param_file)
 
 def get_param(value, param_name, data_type, default = None):
@@ -86,12 +86,12 @@ def main():
   #let's use the non-deprecated ArgumentParser object instead...
   arg_parser = ArgumentParser(description='The launchpad for all performance scripts.')
   path=os.path.dirname(__file__)
-  script = "mkl_tf_cnn_benchmarks.py"
+  script = "tf_cnn_benchmarks.py"
   script_args_blacklist = ['file_location']
   if path != '':
     script=os.path.dirname(__file__)+"/"+script
   if ( not os.path.isfile(script)):
-    print "Could not find the python script. Please make sure that mkl_tf_cnn_benchmarks.py is in the same directory as run_single_node_benchmark.py."
+    print "Could not find the python script. Please make sure that tf_cnn_benchmarks.py is in the same directory as run_single_node_benchmark.py."
     sys.exit(0)
   arg_parser.add_argument("--file_location", help='<path to script file>', default=script)
   #CBR: Per Ashaf request changing model and cpu back to optional parameters with bdw and alexnet default values
