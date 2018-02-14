@@ -97,12 +97,14 @@ def main():
   #CBR: Per Ashaf request changing model and cpu back to optional parameters with bdw and alexnet default values
   arg_parser.add_argument("-m", "--model", help='Specify the model to test', choices=valid_model_vals, default=valid_model_vals[0])
   arg_parser.add_argument('-c', '--cpu', choices=valid_cpu_vals, help='Specify the target CPU', default=valid_cpu_vals[0])
+  arg_parser.add_argument('--device', choices=valid_devices, help='Device to use for computation', default=valid_devices[0])
+  arg_parser.add_argument('--local_parameter_device', choices=valid_devices, help='Device to use as parameter server', default=valid_devices[0])
   args, unknown = arg_parser.parse_known_args()
 
   #Model parameters
-  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=0)
+  arg_parser.add_argument("--print_training_accuracy", help='The training accuracy', type=bool, dest="print_training_accuracy", default=get_model_default_parameter(args.model, 'print_training_accuracy'))
   arg_parser.add_argument('-b', "--batch_size", help='The batch size', type=int, dest="batch_size", default=get_model_default_parameter(args.model, 'batch_size'))
-  arg_parser.add_argument('-nb', "--num_batches", help='Number of batches', type=int, dest="num_batches", default=get_model_default_parameter(args.model, 'max_iter', 100))
+  arg_parser.add_argument('-nb', "--num_batches", help='Number of batches to run excluding warmup', type=int, dest="num_batches", default=get_model_default_parameter(args.model, 'num_batches', 100))
   arg_parser.add_argument("--optimizer", help='Optimizer to use: momentum or sgd or rmsprop', default=get_model_default_parameter(args.model, 'optimizer', 'sgd'))
   arg_parser.add_argument("--learning_rate", help='Initial learning rate for training.', type=float, default=get_model_default_parameter(args.model, 'learning_rate'))
   arg_parser.add_argument("--learning_rate_policy", help='Initial learning rate policy for training.', default=get_model_default_parameter(args.model, 'learning_rate_policy'))
@@ -113,7 +115,16 @@ def main():
   arg_parser.add_argument("--rmsprop_momentum", help='Momentum in RMSProp.', type=float, default=get_model_default_parameter(args.model, 'rmsprop_momentum'))
   arg_parser.add_argument("--rmsprop_epsilon", help='Epsilon term for RMSProp.', type=float, default=get_model_default_parameter(args.model, 'rmsprop_epsilon'))
   arg_parser.add_argument("--weight_decay", help='Weight decay factor for training.', type=float, default=get_model_default_parameter(args.model, 'weight_decay'))
+  arg_parser.add_argument("--save_summaries_steps", help='How often to save summaries for trained models. Pass 0 to disable summaries.', type=int, default=get_model_default_parameter(args.model, 'save_summaries_steps'))
+  arg_parser.add_argument("--save_model_secs", help='How often to save trained models. Pass 0 to disable checkpoints', type=int, default=get_model_default_parameter(args.model, 'save_model_secs'))
+  arg_parser.add_argument("--display_every", help='How often to display iterations.', default=get_model_default_parameter(args.model, 'display_every'))
+  arg_parser.add_argument("--save_model_steps", help='How often to save model checkpoints. Pass 0 to disable.', default=get_model_default_parameter(args.model, 'save_model_steps'))
+  arg_parser.add_argument("--evaluate_every", help='How often(iterations) to evaluate model checkpoints. It must be equale to/multiple of save_model_steps.', default=get_model_default_parameter(args.model, 'evaluate_every'))
+  arg_parser.add_argument("--train_dir", help='Path to session checkpoints. Pass None to disable saving checkpoint at the end.', default=get_model_default_parameter(args.model, 'train_dir'))
+  arg_parser.add_argument("--final_evaluation", help='Evaluate model after training.', default=get_model_default_parameter(args.model, 'final_evaluation'))
   
+  arg_parser.add_argument('-nw', "--num_warmup_batches", help='number of batches to run during warmup', type=int, dest="num_warmup_batches", default=0)
+
   # With dataset name specified
   arg_parser.add_argument('-f', "--data_format", help='The data format', choices=valid_format_vals, dest="data_format", default=valid_format_vals[0])
   arg_parser.add_argument('-i', "--data_dir", help="The data directory", dest="data_dir", default=None)
@@ -152,8 +163,6 @@ def main():
   args = arg_parser.parse_args()
 
   print "Using batch size: {}".format(args.batch_size)
-
-  #TODO: validate file_location
    
   command_prefix = "python " + args.file_location + " "
   if args.cpu in ['knl', 'knm']: 
