@@ -45,6 +45,13 @@ import preprocessing
 import variable_mgr
 
 import horovod.tensorflow as hvd
+# Wei
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.training.learning_rate_decay import piecewise_constant
+# Wei
+
 
 hvd.init()
 MPI_RANK = int(hvd.rank())
@@ -128,7 +135,7 @@ tf.flags.DEFINE_string('graph_file', None,
                        in 'txt'.""")
 tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
-tf.flags.DEFINE_string('list_iters_when_decay', None,
+tf.flags.DEFINE_string('list_iters_when_decay', "4800,9600,12800",
                       """List of steps after which learning rate decays.""")
 tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
                       """Number of iters for gradual lr warmup.""")
@@ -1136,7 +1143,7 @@ class BenchmarkCNN(object):
 
     learning_rate = self.model_conf.get_learning_rate()
     if FLAGS.list_iters_when_decay != "None":
-      learning_rate = tf.train.gradual_warmup_then_step(
+      learning_rate = gradual_warmup_then_step(
                    FLAGS.learning_rate, FLAGS.num_iters_for_grad_warmup, FLAGS.learning_rate*self.batch_size*MPI_SIZE/256,
                    global_step, FLAGS.learning_rate_decay_factor, ast.literal_eval(FLAGS.list_iters_when_decay))
       #learning_rate = tf.Print(learning_rate, [learning_rate], "LR is: ")
@@ -1351,6 +1358,35 @@ class BenchmarkCNN(object):
 
       return tf.group(*queue_ops)
 
+def gradual_warmup_then_step(learning_rate, warmup_steps, end_learning_rate, global_step, decay_rate, steps,
+                               name=None):
+    with ops.name_scope(name, "gradual_warmup_then_step",
+                        [learning_rate, warmup_steps, end_learning_rate, global_step, decay_rate, steps, name]) as name:
+      def warmup_decay(learning_rate, global_step, warmup_steps, end_learning_rate):
+        p = global_step / warmup_steps
+        diff = math_ops.subtract(end_learning_rate, learning_rate)
+        res = math_ops.add(learning_rate, math_ops.multiply(diff, p))
+        return res
+
+      if global_step is None:
+        raise ValueError("global_step is required for warmup_decay.")
+
+      steps = [float(i) for i in steps]
+      learning_rate = ops.convert_to_tensor(learning_rate, name="learning_rate")
+      end_learning_rate = ops.convert_to_tensor(end_learning_rate, name="end_learning_rate")
+      dtype = learning_rate.dtype
+      global_step = math_ops.cast(global_step, dtype)
+      warmup_steps = math_ops.cast(warmup_steps, dtype)
+      decay_rate = math_ops.cast(decay_rate, dtype)
+      value_size = len(steps) + 1
+      steps = ops.convert_n_to_tensor(steps)
+      values = [math_ops.multiply(end_learning_rate, math_ops.pow(decay_rate, i)) for i in range(value_size)]
+      lr = control_flow_ops.cond(math_ops.less(global_step, warmup_steps),
+                   lambda: warmup_decay(learning_rate, global_step, warmup_steps, end_learning_rate),
+                   lambda: piecewise_constant(global_step, steps, values))
+
+      return lr
+
 
 def main(_):
   global args
@@ -1378,3 +1414,4 @@ def main(_):
 
 if __name__ == '__main__':
   tf.app.run()
+
