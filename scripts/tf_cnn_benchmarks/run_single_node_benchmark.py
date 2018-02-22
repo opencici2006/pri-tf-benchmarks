@@ -133,7 +133,10 @@ def main():
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'intra_op'))
   arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="num_inter_threads",
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'inter_op'))
-
+  arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', dest=
+  "num_omp_threads",  
+                          default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'OMP_NUM_THREADS'))
+                          
   #enable tracing for VTune integration
   arg_parser.add_argument('-t', "--trace_file", help='The trace file for vtune integration', dest="trace_file", default=None)
   
@@ -149,6 +152,10 @@ def main():
 
   #This adds support for a --forward-only param with a default value of False. Only if '--forward-only' is on the command-line will the value be true.
   arg_parser.add_argument("--forward_only", help="Only do inference.", dest="forward_only", default=False)
+  
+  #This adds support for a --single_socket param with a default value of False. Only if '--single_socket' is on the command-line will the value be true.
+  arg_parser.add_argument("--single_socket", help="Do inference on one socket only.", dest="single_socket", default=False)
+  
   args = arg_parser.parse_args()
 
   print "Using batch size: {}".format(args.batch_size)
@@ -159,6 +166,9 @@ def main():
   if args.cpu in ['knl', 'knm']: 
      command_prefix = 'numactl -m 1 ' + command_prefix
 
+  if args.single_socket and args.cpu in ['skl']:
+     command_prefix = 'numactl --cpunodebind=0 --membind=0 ' + command_prefix
+     
   for arg in vars(args):
     if getattr(args, arg) is not None:
       if arg not in script_args_blacklist:

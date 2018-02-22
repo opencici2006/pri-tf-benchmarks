@@ -78,6 +78,8 @@ flags.DEFINE_integer('eval_interval_secs', 0,
                      'run. Pass 0 to eval only once.')
 flags.DEFINE_boolean('forward_only', False,
                      'whether use forward-only or training for benchmarking')
+flags.DEFINE_boolean('single_socket', False,
+                     'Do inference on one socket only')                     
 flags.DEFINE_boolean('print_training_accuracy', False,
                      'whether to calculate and print training accuracy during '
                      'training')
@@ -150,6 +152,8 @@ flags.DEFINE_integer('num_intra_threads', 1,
 flags.DEFINE_integer('num_inter_threads', 0,
                      'Number of threads to use for inter-op parallelism. If '
                      'set to 0, the system will pick an appropriate number.')
+flags.DEFINE_integer('num_omp_threads', 0,
+                     'Number of threads to use for OMP threads.')                     
 flags.DEFINE_string('trace_file', '',
                     'Enable TensorFlow tracing and write trace to this file.')
 flags.DEFINE_string('graph_file', None,
@@ -2028,8 +2032,7 @@ def setup(params):
     os.environ['KMP_BLOCKTIME'] = str(params.kmp_blocktime)
     os.environ['KMP_SETTINGS'] = str(params.kmp_settings)
     os.environ['KMP_AFFINITY'] = params.kmp_affinity
-    if params.num_intra_threads > 0:
-      os.environ['OMP_NUM_THREADS'] = str(params.num_intra_threads)
+    os.environ['OMP_NUM_THREADS'] = str(params.num_omp_threads)
 
   # Sets GPU thread settings
   params = params._replace(gpu_thread_mode=params.gpu_thread_mode.lower())
