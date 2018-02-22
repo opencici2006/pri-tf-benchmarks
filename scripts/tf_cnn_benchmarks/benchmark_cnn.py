@@ -58,8 +58,6 @@ _DEFAULT_NUM_BATCHES = 100
 
 # TODO(reedwm): add upper_bound and lower_bounds to appropriate integer and
 # float flags, and change certain string flags to enum flags.
-
-flags.DEFINE_string('cpu', 'skl', 'name of the cpu to run on')
 flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 
 # The code will first check if it's running under benchmarking mode
@@ -77,9 +75,7 @@ flags.DEFINE_integer('eval_interval_secs', 0,
                      'same as save_model_secs from the corresponding training '
                      'run. Pass 0 to eval only once.')
 flags.DEFINE_boolean('forward_only', False,
-                     'whether use forward-only or training for benchmarking')
-flags.DEFINE_boolean('single_socket', False,
-                     'Do inference on one socket only')                     
+                     'whether use forward-only or training for benchmarking')                    
 flags.DEFINE_boolean('print_training_accuracy', False,
                      'whether to calculate and print training accuracy during '
                      'training')
@@ -2032,7 +2028,10 @@ def setup(params):
     os.environ['KMP_BLOCKTIME'] = str(params.kmp_blocktime)
     os.environ['KMP_SETTINGS'] = str(params.kmp_settings)
     os.environ['KMP_AFFINITY'] = params.kmp_affinity
-    os.environ['OMP_NUM_THREADS'] = str(params.num_omp_threads)
+    if params.num_omp_threads > 0:
+       os.environ['OMP_NUM_THREADS'] = str(params.num_omp_threads)
+    elif params.num_intra_threads > 0:
+       os.environ['OMP_NUM_THREADS'] = str(params.num_intra_threads)
 
   # Sets GPU thread settings
   params = params._replace(gpu_thread_mode=params.gpu_thread_mode.lower())

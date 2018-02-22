@@ -87,7 +87,7 @@ def main():
   arg_parser = ArgumentParser(description='The launchpad for all performance scripts.')
   path=os.path.dirname(__file__)
   script = "tf_cnn_benchmarks.py"
-  script_args_blacklist = ['file_location']
+  script_args_blacklist = ['file_location', 'single_socket', 'cpu']
   if path != '':
     script=os.path.dirname(__file__)+"/"+script
   if ( not os.path.isfile(script)):
