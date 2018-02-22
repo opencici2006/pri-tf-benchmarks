@@ -75,7 +75,7 @@ flags.DEFINE_integer('eval_interval_secs', 0,
                      'same as save_model_secs from the corresponding training '
                      'run. Pass 0 to eval only once.')
 flags.DEFINE_boolean('forward_only', False,
-                     'whether use forward-only or training for benchmarking')                    
+                     'whether use forward-only or training for benchmarking')
 flags.DEFINE_boolean('print_training_accuracy', False,
                      'whether to calculate and print training accuracy during '
                      'training')
