@@ -58,8 +58,6 @@ _DEFAULT_NUM_BATCHES = 100
 
 # TODO(reedwm): add upper_bound and lower_bounds to appropriate integer and
 # float flags, and change certain string flags to enum flags.
-
-flags.DEFINE_string('cpu', 'skl', 'name of the cpu to run on')
 flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 
 # The code will first check if it's running under benchmarking mode
@@ -150,6 +148,8 @@ flags.DEFINE_integer('num_intra_threads', 1,
 flags.DEFINE_integer('num_inter_threads', 0,
                      'Number of threads to use for inter-op parallelism. If '
                      'set to 0, the system will pick an appropriate number.')
+flags.DEFINE_integer('num_omp_threads', 0,
+                     'Number of threads to use for OMP threads.')                     
 flags.DEFINE_string('trace_file', '',
                     'Enable TensorFlow tracing and write trace to this file.')
 flags.DEFINE_string('graph_file', None,
@@ -2028,8 +2028,10 @@ def setup(params):
     os.environ['KMP_BLOCKTIME'] = str(params.kmp_blocktime)
     os.environ['KMP_SETTINGS'] = str(params.kmp_settings)
     os.environ['KMP_AFFINITY'] = params.kmp_affinity
-    if params.num_intra_threads > 0:
-      os.environ['OMP_NUM_THREADS'] = str(params.num_intra_threads)
+    if params.num_omp_threads > 0:
+       os.environ['OMP_NUM_THREADS'] = str(params.num_omp_threads)
+    elif params.num_intra_threads > 0:
+       os.environ['OMP_NUM_THREADS'] = str(params.num_intra_threads)
 
   # Sets GPU thread settings
   params = params._replace(gpu_thread_mode=params.gpu_thread_mode.lower())
