@@ -167,9 +167,10 @@ def setenvs(inpargv):
           os.environ["OMP_NUM_THREADS"]= "66"    
     elif (args.cpu == 'skl' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
-        os.environ["KMP_SETTINGS"] = "1"
-        os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
-        os.environ["OMP_NUM_THREADS"]= "56"
+        os.environ["KMP_SETTINGS"] = "0"
+        #os.environ["KMP_AFFINITY"]="granularity=fine,verbose,compact,1,0"
+        os.environ["KMP_AFFINITY"]="granularity=fine,compact,1,0"
+        os.environ["OMP_NUM_THREADS"]= args.num_omp_threads 
     elif (args.cpu =='knm' and args.model == 'resnet50'):
         os.environ["KMP_BLOCKTIME"] = "0"
         os.environ["KMP_AFFINITY"]= "granularity=fine,verbose,compact,1,0"
