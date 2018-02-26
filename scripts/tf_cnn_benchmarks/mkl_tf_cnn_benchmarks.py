@@ -76,11 +76,13 @@ tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 # Under the benchmarking mode, user can specify whether nor not to use
 #   the forward-only option, which will only compute the loss function.
 #   forward-only cannot be enabled with eval at the same time.
-tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+#tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
-tf.flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 14400,
+tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device')
+#tf.flags.DEFINE_integer('num_batches', 14400,
+tf.flags.DEFINE_integer('num_batches', 500,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -213,9 +215,9 @@ tf.flags.DEFINE_integer('save_summaries_steps', 1000,
 tf.flags.DEFINE_integer('save_model_secs', 3600,
                         """How often to save trained models. Pass 0 to disable
                         checkpoints""")
-tf.flags.DEFINE_string('train_dir', None,
+tf.flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/train',
                        """Path to session checkpoints.""")
-tf.flags.DEFINE_string('eval_dir', '/tmp/tf_cnn_benchmarks/eval',
+tf.flags.DEFINE_string('eval_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/eval',
                        """Directory where to write eval event logs.""")
 tf.flags.DEFINE_string('pretrain_dir', None,
                        """Path to pretrained session checkpoints.""")
