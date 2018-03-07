@@ -19,6 +19,12 @@ import platform
 from argparse import ArgumentParser
 import os
 import sys
+import subprocess
+import multiprocessing as mp
+import re
+
+from logger import get_logger
+
 '''This file is the default launch pad for Intel TensorFlow perf team performance tests. The following parameter is required:
   arg_parser.add_argument('file_location', help='<path to script file>')
 
@@ -52,6 +58,9 @@ valid_model_vals=['alexnet','googlenet','vgg11','vgg16','inception3','resnet50',
 valid_protocol_vals=['grpc', 'grpc+mpi', 'grpc+verbs']
 valid_format_vals=['NCHW', 'NHWC']
 
+num_of_sockets = int(os.popen("cat /proc/cpuinfo | grep \"physical id\" | sort -u | wc -l").read())
+num_of_cores_per_socket = int(os.popen("lscpu | grep \'socket\' | awk {'print $4'}").read())
+num_of_all_cores = num_of_cores_per_socket * num_of_sockets
 with open(os.path.abspath(os.path.dirname(__file__)) +"/"+ "mkl_parameters.json") as param_file:
   parameters = json.load(param_file)
 
@@ -82,12 +91,53 @@ def get_model_default_parameter(model, parameter_name, default=None):
   except KeyError:
     return default
 
+def run_cmd(command, log):
+  process = subprocess.Popen(args=command,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT,
+                             shell=False)
+
+  out, err = process.communicate()
+  log.info(err)
+  log.info(out)
+  return process.returncode
+
+def run_benchmark(cmd, args, logger_id='default'):
+  logger=get_logger(name='benchmark_run_{}'.format(logger_id), log_file='{}/benchmark_run_{}.log'.format(args.log_dir, logger_id), to_stdout=False)
+  print_header(cmd, args, logger)
+  if args.data_dir is not None:
+    logger.info("Running with real data from: {}".format(args.data_dir))
+  else:
+    logger.info("Running with dummy data")
+  run_cmd(cmd.split(), logger)
+
+def create_result(args):
+  final_result = 0
+  regex = re.compile(r'(?<=total images.sec:.)[0-9]{0,3}.[0-9]{0,2}')
+  for i in range(0, args.num_instances):
+    if args.num_sockets == 2 and args.num_instances == 1:
+      file = open('{}/benchmark_run_default.log'.format(args.log_dir))
+    else:
+      file = open('{}/benchmark_run_{}.log'.format(args.log_dir, i))
+    data = file.read()
+    match = regex.findall(data)
+    final_result += float(match[0])
+    file.close()
+  with open('{}/output.log'.format(args.log_dir), 'w') as file:
+    file.write(r'batch size: ' + str(args.batch_size) + '\n')
+    file.write(r'total images/sec: ' + str(final_result))
+  return final_result
+
+def split_by_instances(i_count):
+  cores_per_instance = num_of_all_cores // i_count
+  for i in range(0, num_of_all_cores, cores_per_instance):
+    yield i, i + cores_per_instance - 1, int(i >= num_of_all_cores / 2)
 def main():
   #let's use the non-deprecated ArgumentParser object instead...
   arg_parser = ArgumentParser(description='The launchpad for all performance scripts.')
   path=os.path.dirname(__file__)
   script = "tf_cnn_benchmarks.py"
-  script_args_blacklist = ['file_location', 'single_socket', 'cpu']
+  script_args_blacklist = ['file_location', 'cpu', 'num_sockets', 'num_instances']
   if path != '':
     script=os.path.dirname(__file__)+"/"+script
   if ( not os.path.isfile(script)):
@@ -133,6 +183,11 @@ def main():
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'intra_op'))
   arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="num_inter_threads",
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'inter_op'))
+  #For multiple instances
+  arg_parser.add_argument("--num_sockets", help="How many sockets to use", type=int, choices=[1, 2], default=2, dest="num_sockets")
+  arg_parser.add_argument("--num_instances", help="How many instances to run", type=int, choices=[1, 2, 4, 8, 16], default=1, dest="num_instances")
+  arg_parser.add_argument("--log_dir", help='Specify path to log file', type=str, dest="log_dir", default='.')
+
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', dest=
   "num_omp_threads",  
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'OMP_NUM_THREADS'))
@@ -152,10 +207,7 @@ def main():
 
   #This adds support for a --forward-only param with a default value of False. Only if '--forward-only' is on the command-line will the value be true.
   arg_parser.add_argument("--forward_only", help="Only do inference.", dest="forward_only", default=False)
-  
-  #This adds support for a --single_socket param with a default value of False. Only if '--single_socket' is on the command-line will the value be true.
-  arg_parser.add_argument("--single_socket", help="Do inference on one socket only.", dest="single_socket", default=False)
-  
+
   args = arg_parser.parse_args()
 
   print "Using batch size: {}".format(args.batch_size)
@@ -164,24 +216,46 @@ def main():
    
   command_prefix = "python " + args.file_location + " "
   if args.cpu in ['knl', 'knm']: 
-     command_prefix = 'numactl -m 1 ' + command_prefix
+    command_prefix = 'numactl -m 1 ' + command_prefix
+    if args.num_sockets > 1:
+      arg_parser.error("Running on more than 1 socket is not supported with knl or knm. Use --num_sockets=1")
+  
+  if args.num_sockets == 1 and args.num_instances == 1:    
+    if args.cpu not in ['knl', 'knm']:  #for bdw skx only
+      args.num_inter_threads = 1
+      args.num_intra_threads = args.num_intra_threads / 2
+      command_prefix = 'numactl --cpunodebind=0 --membind=0 ' + command_prefix
 
-  if args.single_socket and args.cpu in ['skl']:
-     command_prefix = 'numactl --cpunodebind=0 --membind=0 ' + command_prefix
-     
+  if args.num_instances >= 2:
+    if args.num_sockets == 1:
+      arg_parser.error("Running more than 1 instances is not possible when using only 1 socket. Use --num_sockets=2")
+    args.num_inter_threads = 1
+    args.num_intra_threads = args.num_intra_threads / args.num_instances
+
   for arg in vars(args):
     if getattr(args, arg) is not None:
       if arg not in script_args_blacklist:
         command_prefix = command_prefix + (' --{param}={value}').format(param=arg, value=getattr(args, arg))
 
+  #Multiprocessing
+  if args.num_instances >= 2:
+    pool = mp.Pool(processes=args.num_instances)
+    for i, x in enumerate(split_by_instances(args.num_instances)):
+      cmd = "numactl --physcpubind={}-{} --membind={} ".format(*x) + command_prefix
+      pool.apply_async(run_benchmark, [cmd, args, i])
+    pool.close()
+    pool.join()
+    create_result(args)
+    sys.exit()
+
   cmd = command_prefix
-  print "Running:", cmd
-  if args.data_dir is not None:
-    print "Running with real data from:", args.data_dir
+
+  if args.num_sockets == 1 and args.num_instances == 1:
+    run_benchmark(cmd, args, 0)
+    create_result(args)
   else:
-    print "Running with dummy data"
-  sys.stdout.flush()
-  os.system(cmd)
+    run_benchmark(cmd, args)
+    create_result(args)
 
 if __name__ == "__main__":
   main()
