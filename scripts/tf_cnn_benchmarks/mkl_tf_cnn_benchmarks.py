@@ -76,13 +76,15 @@ tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 # Under the benchmarking mode, user can specify whether nor not to use
 #   the forward-only option, which will only compute the loss function.
 #   forward-only cannot be enabled with eval at the same time.
-#tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
+#tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
 tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device')
-#tf.flags.DEFINE_integer('num_batches', 14400,
+#tf.flags.DEFINE_integer('batch_size', 128, 'batch size per compute device')
 tf.flags.DEFINE_integer('num_batches', 500,
+#tf.flags.DEFINE_integer('num_batches', 14400,
+#tf.flags.DEFINE_integer('num_batches', 57600,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -99,7 +101,9 @@ tf.flags.DEFINE_string('data_name', None,
                        """Name of dataset: imagenet or flowers.
                        If not specified, it is automatically guessed
                        based on --data_dir.""")
-tf.flags.DEFINE_string('resize_method', 'bilinear',
+#tf.flags.DEFINE_string('resize_method', 'bilinear',
+tf.flags.DEFINE_string('resize_method', 'crop',
+#tf.flags.DEFINE_string('resize_method', 'bilinear',
                        """Method for resizing input images:
                        crop,nearest,bilinear,bicubic or area.
                        The 'crop' mode requires source images to be at least
@@ -137,9 +141,10 @@ tf.flags.DEFINE_string('graph_file', None,
                        in 'txt'.""")
 tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
-tf.flags.DEFINE_string('list_iters_when_decay', "4800,9600,12800",
+tf.flags.DEFINE_string('list_iters_when_decay', "19200,38400,51200",
                       """List of steps after which learning rate decays.""")
-tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
+#tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
+tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 3200,
                       """Number of iters for gradual lr warmup.""")
 tf.flags.DEFINE_float('learning_rate', 0.1,
                       """Initial learning rate for training.""")
@@ -189,6 +194,7 @@ tf.flags.DEFINE_boolean('force_gpu_compatible', True,
 #       nccl all-reduce for replicating within a server.
 tf.flags.DEFINE_string(
     'variable_update', 'independent',
+    #'variable_update', 'parameter_server',
     ('The method for managing variables: '
      'parameter_server, replicated, distributed_replicated, independent'))
 tf.flags.DEFINE_boolean(
@@ -209,13 +215,14 @@ tf.flags.DEFINE_boolean('cross_replica_sync', True, '')
 tf.flags.DEFINE_integer('summary_verbosity', 1,
                         """Verbosity level for summary ops. Pass 0 to disable
                         both summaries and checkpoints.""")
-tf.flags.DEFINE_integer('save_summaries_steps', 1000,
+#tf.flags.DEFINE_integer('save_summaries_steps', 1000,
+tf.flags.DEFINE_integer('save_summaries_steps', 3000,
                         """How often to save summaries for trained models.
                         Pass 0 to disable summaries.""")
-tf.flags.DEFINE_integer('save_model_secs', 3600,
+tf.flags.DEFINE_integer('save_model_secs', 1200,
                         """How often to save trained models. Pass 0 to disable
                         checkpoints""")
-tf.flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/train',
+tf.flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/1st16RN50train',
                        """Path to session checkpoints.""")
 tf.flags.DEFINE_string('eval_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/eval',
                        """Directory where to write eval event logs.""")
@@ -727,7 +734,10 @@ def get_perf_timing_str(batch_size, step_train_times, scale=1):
 
 
 def load_checkpoint(saver, sess, ckpt_dir):
+  print(ckpt_dir)
   ckpt = tf.train.get_checkpoint_state(ckpt_dir)
+  print(ckpt)
+  print(ckpt.model_checkpoint_path)
   if ckpt and ckpt.model_checkpoint_path:
     if os.path.isabs(ckpt.model_checkpoint_path):
       # Restores from checkpoint with absolute path.
@@ -943,7 +953,7 @@ class BenchmarkCNN(object):
         count_top_5 += results[1]
         if (step + 1) % FLAGS.display_every == 0:
           duration = time.time() - start_time
-          examples_per_sec = self.batch_size * self.num_batches / duration
+          examples_per_sec = self.batch_size * FLAGS.display_every / duration
           log_fn('%i\t%.1f examples/sec' % (step + 1, examples_per_sec))
           start_time = time.time()
       precision_at_1 = count_top_1 / total_eval_count
