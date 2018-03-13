@@ -143,7 +143,6 @@ tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
 tf.flags.DEFINE_string('list_iters_when_decay', "19200,38400,51200",
                       """List of steps after which learning rate decays.""")
-#tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
 tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 3200,
                       """Number of iters for gradual lr warmup.""")
 tf.flags.DEFINE_float('learning_rate', 0.1,
