@@ -80,9 +80,10 @@ tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
-tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device')
-#tf.flags.DEFINE_integer('num_batches', 14400,
-tf.flags.DEFINE_integer('num_batches', 500,
+#tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device') #for inference
+tf.flags.DEFINE_integer('batch_size', 128, 'batch size per compute device')
+tf.flags.DEFINE_integer('num_batches', 14400,
+#tf.flags.DEFINE_integer('num_batches', 500, #for inference
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -139,7 +140,7 @@ tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
 tf.flags.DEFINE_string('list_iters_when_decay', "4800,9600,12800",
                       """List of steps after which learning rate decays.""")
-tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 0,
+tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 800,
                       """Number of iters for gradual lr warmup.""")
 tf.flags.DEFINE_float('learning_rate', 0.1,
                       """Initial learning rate for training.""")
