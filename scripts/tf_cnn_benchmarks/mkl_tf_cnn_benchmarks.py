@@ -76,8 +76,8 @@ tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 # Under the benchmarking mode, user can specify whether nor not to use
 #   the forward-only option, which will only compute the loss function.
 #   forward-only cannot be enabled with eval at the same time.
-#tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
-tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
+tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+#tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking') #for inference
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
 #tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device') #for inference
