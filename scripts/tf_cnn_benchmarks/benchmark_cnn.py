@@ -44,6 +44,7 @@ import datasets
 import variable_mgr
 from cnn_util import log_fn
 from models import model_config
+import itt
 
 # _ParamSpec describes one of BenchmarkCNN's parameters. _ParamSpec is the value
 # type for _DEFAULT_PARAMS below.
@@ -510,6 +511,7 @@ def get_mode_from_params(params):
     return 'forward-only'
   return 'training'
 
+domain = itt.domain_create("training")
 
 def benchmark_one_step(sess,
                        fetches,
@@ -520,6 +522,9 @@ def benchmark_one_step(sess,
                        image_producer,
                        params,
                        summary_op=None):
+
+  itt.task_begin(domain, "frame")
+
   """Advance one step of benchmarking."""
   if trace_filename is not None and step == -1:
     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -554,6 +559,9 @@ def benchmark_one_step(sess,
     trace = timeline.Timeline(step_stats=run_metadata.step_stats)
     with gfile.Open(trace_filename, 'w') as trace_file:
       trace_file.write(trace.generate_chrome_trace_format(show_memory=True))
+
+  itt.task_end(domain)
+
   return summary_str
 
 
@@ -647,6 +655,10 @@ class BenchmarkCNN(object):
       ValueError: Unsupported params settings.
     """
     self.params = params
+
+    print("**************************");
+    print(self.params.variable_update);
+    print("**************************");
     self.dataset = datasets.create_dataset(self.params.data_dir,
                                            self.params.data_name)
     self.model = model_config.get_model_config(self.params.model, self.dataset)
