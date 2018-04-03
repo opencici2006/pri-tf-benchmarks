@@ -23,6 +23,11 @@ To run ResNet50 with synthetic data without distortions with a single GPU, run
 python tf_cnn_benchmarks.py --num_gpus=1 --batch_size=32 --model=resnet50 --variable_update=parameter_server
 ```
 
+Note that tf_cnn_benchmarks currently requires the latest nightly version of
+TensorFlow. You can install the nightly version by running
+`pip install tf-nightly-gpu` in a clean environment, or by installing TensorFlow
+from source.
+
 Some important flags are
 
 *   model: Model to use, e.g. resnet50, inception3, vgg16, and alexnet.
@@ -36,7 +41,4 @@ Some important flags are
     ,replicated, distributed_replicated, independent
 *   local_parameter_device: Device to use as parameter server: cpu or gpu.
 
-See
-[benchmark_cnn.py](https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/benchmark_cnn.py)
-for the full list of flags. The `_DEFAULT_PARAMS` dict in that file contains the
-flags.
+To see the full list of flags, run `python tf_cnn_benchmarks.py --help`.

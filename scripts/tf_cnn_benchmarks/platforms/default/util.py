@@ -12,30 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Trivial model configuration."""
 
-from models import model
+"""Utility code for the default platform."""
 
-
-class TrivialModel(model.Model):
-  """Trivial model configuration."""
-
-  def __init__(self):
-    super(TrivialModel, self).__init__('trivial', 224 + 3, 32, 0.005)
-
-  def add_inference(self, cnn):
-    cnn.reshape([-1, 227 * 227 * 3])
-    cnn.affine(1)
-    cnn.affine(4096)
+import cnn_util
 
 
-class TrivialCifar10Model(model.Model):
-  """Trivial cifar10 model configuration."""
+def define_platform_params():
+  """Defines platform-specific parameters.
 
-  def __init__(self):
-    super(TrivialCifar10Model, self).__init__('trivial', 32, 32, 0.005)
+  Currently there are no platform-specific parameters to be defined.
+  """
+  pass
 
-  def add_inference(self, cnn):
-    cnn.reshape([-1, 32 * 32 * 3])
-    cnn.affine(1)
-    cnn.affine(4096)
+
+def get_cluster_manager(params, config_proto):
+  """Returns the cluster manager to be used."""
+  return cnn_util.GrpcClusterManager(params, config_proto)
+
+
+def _initialize(params, config_proto):
+  # Currently, no platform initialization needs to be done.
+  del params, config_proto
+
+
+_is_initalized = False
+
+
+def initialize(params, config_proto):
+  global _is_initalized
+  if _is_initalized:
+    return
+  _is_initalized = True
+  _initialize(params, config_proto)
