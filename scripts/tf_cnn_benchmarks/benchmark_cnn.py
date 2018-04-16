@@ -54,6 +54,10 @@ from models import model_config
 from platforms import util as platforms_util
 
 
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.training.learning_rate_decay import polynomial_decay
 _DEFAULT_NUM_BATCHES = 100
 
 # TODO(reedwm): add upper_bound and lower_bounds to appropriate integer and
@@ -69,21 +73,21 @@ flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 # Under the benchmarking mode, user can specify whether nor not to use
 #   the forward-only option, which will only compute the loss function.
 #   forward-only cannot be enabled with eval at the same time.
-flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
 flags.DEFINE_integer('eval_interval_secs', 0,
                      'How often to run eval on saved checkpoints. Usually the '
                      'same as save_model_secs from the corresponding training '
                      'run. Pass 0 to eval only once.')
 flags.DEFINE_boolean('forward_only', False,
                      'whether use forward-only or training for benchmarking')
-flags.DEFINE_boolean('print_training_accuracy', False,
+flags.DEFINE_boolean('print_training_accuracy', True,
                      'whether to calculate and print training accuracy during '
                      'training')
-flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
+flags.DEFINE_integer('batch_size', 100, 'batch size per compute device')
 flags.DEFINE_integer('batch_group_size', 1,
                      'number of groups of batches processed in the image '
                      'producer.')
-flags.DEFINE_integer('num_batches', None, 'number of batches to run, excluding '
+flags.DEFINE_integer('num_batches', 500, 'number of batches to run, excluding '
                      'warmup. Defaults to %d' % _DEFAULT_NUM_BATCHES)
 flags.DEFINE_float('num_epochs', None,
                    'number of epochs to run, excluding warmup. '
@@ -133,11 +137,11 @@ flags.DEFINE_boolean('cache_data', False,
                      'many times. The purpose of this flag is to make it '
                      'possible to write regression tests that are not '
                      'bottlenecked by CNS throughput.')
-flags.DEFINE_string('local_parameter_device', 'gpu',
+flags.DEFINE_string('local_parameter_device', 'cpu',
                     'Device to use as parameter server: cpu or gpu. For '
                     'distributed training, it can affect where caching of '
                     'variables happens.')
-flags.DEFINE_string('device', 'gpu',
+flags.DEFINE_string('device', 'cpu',
                     'Device to use for computation: cpu or gpu')
 flags.DEFINE_string('data_format', 'NCHW',
                     'Data layout to use: NHWC (TF native) or NCHW (cuDNN '
@@ -155,9 +159,11 @@ flags.DEFINE_string('trace_file', '',
 flags.DEFINE_string('graph_file', None,
                     'Write the model\'s graph definition to this file. '
                     'Defaults to binary format unless filename ends in "txt".')
-flags.DEFINE_string('optimizer', 'sgd',
+flags.DEFINE_string('optimizer', 'momentum',
                     'Optimizer to use: momentum or sgd or rmsprop')
-flags.DEFINE_float('learning_rate', None,
+flags.DEFINE_integer('num_iters_for_grad_warmup', 3125,
+                     'Number of iters for gradual learning rate warmup.')
+flags.DEFINE_float('learning_rate', 0.05,
                    'Initial learning rate for training.')
 flags.DEFINE_string('piecewise_learning_rate_schedule', None,
                     'Specifies a piecewise learning rate schedule based on the '
@@ -186,7 +192,8 @@ flags.DEFINE_float('rmsprop_momentum', 0.9, 'Momentum in RMSProp.')
 flags.DEFINE_float('rmsprop_epsilon', 1.0, 'Epsilon term for RMSProp.')
 flags.DEFINE_float('gradient_clip', None,
                    'Gradient clipping magnitude. Disabled by default.')
-flags.DEFINE_float('weight_decay', 0.00004,
+#flags.DEFINE_float('weight_decay', 0.00004,
+flags.DEFINE_float('weight_decay', 0.0002,
                    'Weight decay factor for training.')
 flags.DEFINE_float('gpu_memory_frac_for_testing', 0,
                    'If non-zero, the fraction of GPU memory that will be used. '
@@ -242,7 +249,7 @@ flags.DEFINE_boolean('single_l2_loss_op', False,
                      'concatenate the variables into a single tensor and do a '
                      'single L2 loss on the concatenated tensor.')
 # Performance tuning specific to MKL.
-flags.DEFINE_boolean('mkl', False, 'If true, set MKL environment variables.')
+flags.DEFINE_boolean('mkl', True, 'If true, set MKL environment variables.')
 flags.DEFINE_integer('kmp_blocktime', 30,
                      'The time, in milliseconds, that a thread should wait, '
                      'after completing the execution of a parallel region, '
@@ -305,7 +312,7 @@ flags.DEFINE_integer('fp16_inc_loss_scale_every_n', 1000,
 #       worker, this is the same as replicated.
 #   horovod: Distributed training using Horovod library. Runs workers using
 #       an MPI framework (e.g. Open MPI). Each worker runs training on
-#       single GPU, and averages gradients using NCCL or MPI all-reduce.
+#       single GPU/CPU, and averages gradients using NCCL or MPI all-reduce.
 #       See https://github.com/uber/horovod for more details.
 flags.DEFINE_string('variable_update', 'parameter_server',
                     'The method for managing variables: parameter_server, '
@@ -360,7 +367,7 @@ flags.DEFINE_string('horovod_device', '', 'Device to do Horovod all-reduce on: '
                     'option, and CPU otherwise.')
 
 # Summary and Save & load checkpoints.
-flags.DEFINE_integer('summary_verbosity', 0, 'Verbosity level for summary ops. '
+flags.DEFINE_integer('summary_verbosity', 1, 'Verbosity level for summary ops. '
                      'level 0: disable any summary.\n'
                      'level 1: small and fast ops, e.g.: learning_rate, '
                      'total_loss.\n'
@@ -368,13 +375,13 @@ flags.DEFINE_integer('summary_verbosity', 0, 'Verbosity level for summary ops. '
                      'gradients.\n'
                      'level 3: expensive ops: images and histogram of each '
                      'gradient.\n')
-flags.DEFINE_integer('save_summaries_steps', 0,
+flags.DEFINE_integer('save_summaries_steps', 1000,
                      'How often to save summaries for trained models. Pass 0 '
                      'to disable summaries.')
-flags.DEFINE_integer('save_model_secs', 0,
+flags.DEFINE_integer('save_model_secs', 1000,
                      'How often to save trained models. Pass 0 to disable '
                      'checkpoints.')
-flags.DEFINE_string('train_dir', None,
+flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/Inception-v3-single-loss-HP-1st-Train-CPU-SlimPreprocessing/',
                     'Path to session checkpoints. Pass None to disable saving '
                     'checkpoint at the end.')
 flags.DEFINE_string('eval_dir', '/tmp/tf_cnn_benchmarks/eval',
@@ -802,12 +809,36 @@ def get_learning_rate(params, global_step, num_examples_per_epoch, model,
                                  params.minimum_learning_rate)
   return learning_rate
 
+def gradual_warmup_then_poly(learning_rate, warmup_steps, end_learning_rate, global_step,
+                               name=None):
+    with ops.name_scope(name, "gradual_warmup_then_poly",
+                        [learning_rate, warmup_steps, end_learning_rate, global_step, name]) as name:
+      def warmup_decay(learning_rate, global_step, warmup_steps, end_learning_rate):
+        p = global_step / warmup_steps
+        diff = math_ops.subtract(end_learning_rate, learning_rate)
+        res = math_ops.add(learning_rate, math_ops.multiply(diff, p))
+        return res
+
+      if global_step is None:
+        raise ValueError("global_step is required for warmup_decay.")
+
+      learning_rate = ops.convert_to_tensor(learning_rate, name="learning_rate")
+      end_learning_rate = ops.convert_to_tensor(end_learning_rate, name="end_learning_rate")
+      dtype = learning_rate.dtype
+      global_step = math_ops.cast(global_step, dtype)
+      warmup_steps = math_ops.cast(warmup_steps, dtype)
+      lr = control_flow_ops.cond(math_ops.less(global_step, warmup_steps),
+                   lambda: warmup_decay(learning_rate, global_step, warmup_steps, end_learning_rate),
+                   lambda: polynomial_decay(0.6, global_step, 62500, end_learning_rate=0.0, power=2.0))
+
+      return lr
+
 
 def get_optimizer(params, learning_rate):
   """Returns the optimizer that should be used based on params."""
   if params.optimizer == 'momentum':
     opt = tf.train.MomentumOptimizer(
-        learning_rate, params.momentum, use_nesterov=True)
+        learning_rate, params.momentum, use_nesterov=False)
   elif params.optimizer == 'sgd':
     opt = tf.train.GradientDescentOptimizer(learning_rate)
   elif params.optimizer == 'rmsprop':
@@ -850,9 +881,11 @@ class BenchmarkCNN(object):
     autotune_threshold = self.params.autotune_threshold if (
         self.params.autotune_threshold) else 1
     min_autotune_warmup = 5 * autotune_threshold * autotune_threshold
+#    self.num_warmup_batches = self.params.num_warmup_batches if (
+#        self.params.num_warmup_batches is not None) else max(
+#            10, min_autotune_warmup)
     self.num_warmup_batches = self.params.num_warmup_batches if (
-        self.params.num_warmup_batches is not None) else max(
-            10, min_autotune_warmup)
+        self.params.num_warmup_batches is not None) else 0
     self.graph_file = self.params.graph_file
     self.resize_method = self.params.resize_method
     self.sync_queue_counter = 0
@@ -1154,7 +1187,7 @@ class BenchmarkCNN(object):
       dictionary.
     """
     (image_producer_ops, enqueue_ops, fetches) = self._build_model()
-    saver = tf.train.Saver(self.variable_mgr.savable_variables())
+    saver = tf.train.Saver(self.variable_mgr.savable_variables(), max_to_keep=30)
     summary_writer = tf.summary.FileWriter(self.params.eval_dir,
                                            tf.get_default_graph())
     target = ''
@@ -1310,7 +1343,7 @@ class BenchmarkCNN(object):
     # Running summaries and training operations in parallel could run out of
     # GPU memory.
     saver = tf.train.Saver(
-        self.variable_mgr.savable_variables(), save_relative_paths=True)
+        self.variable_mgr.savable_variables(), save_relative_paths=True, max_to_keep=30)
     ready_for_local_init_op = None
     if self.job_name and not self.single_session:
       # In distributed mode, we don't want to run local_var_init_op_group until
@@ -1618,6 +1651,9 @@ class BenchmarkCNN(object):
         learning_rate = get_learning_rate(self.params, global_step,
                                           self.dataset.num_examples_per_epoch(),
                                           self.model, self.batch_size)
+        learning_rate = gradual_warmup_then_poly(
+                self.params.learning_rate, self.params.num_iters_for_grad_warmup, 0.6,
+                global_step)
 
         if gradient_clip is not None:
           clipped_grads = [(tf.clip_by_value(grad, -gradient_clip,

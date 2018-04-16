@@ -15,6 +15,9 @@
 
 """Image pre-processing utilities.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import math
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
@@ -27,6 +30,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.platform import gfile
 import cnn_util
 
+from tensorflow.python.ops import control_flow_ops
 
 def parse_example_proto(example_serialized):
   """Parses an Example proto containing a training example of an image.
@@ -163,109 +167,195 @@ def decode_jpeg(image_buffer, scope=None):  # , dtype=tf.float32):
     # Note that the resulting image contains an unknown height and width
     # that is set dynamically by decode_jpeg. In other words, the height
     # and width of image is unknown at compile-time.
-    image = tf.image.decode_jpeg(image_buffer, channels=3,
-                                 fancy_upscaling=False,
-                                 dct_method='INTEGER_FAST')
+    image = tf.image.decode_jpeg(image_buffer, channels=3) #,
+                            #     fancy_upscaling=False,
+                            #     dct_method='INTEGER_FAST')
 
     # image = tf.Print(image, [tf.shape(image)], 'Image shape: ')
+    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
     return image
 
 
-def eval_image(image,
-               height,
-               width,
-               batch_position,
-               resize_method,
-               summary_verbosity=0):
-  """Get the image for model evaluation.
 
-  We preprocess the image simiarly to Slim, see
-  https://github.com/tensorflow/models/blob/master/slim/preprocessing/vgg_preprocessing.py
-  Validation images do not have bounding boxes, so to crop the image, we first
-  resize the image such that the aspect ratio is maintained and the resized
-  height and width are both at least 1.15 times `height` and `width`
-  respectively. Then, we do a central crop to size (`height`, `width`).
+def preprocess_for_eval(image, height, width,
+                        central_fraction=0.875, scope=None):
+  """Prepare one image for evaluation.
 
-  TODO(b/64579165): Determine if we should use different evaluation
-  prepossessing steps.
+  If height and width are specified it would output an image with that size by
+  applying resize_bilinear.
+
+  If central_fraction is specified it would crop the central fraction of the
+  input image.
 
   Args:
-    image: 3-D float Tensor representing the image.
-    height: The height of the image that will be returned.
-    width: The width of the image that will be returned.
-    batch_position: position of the image in a batch, which affects how images
-      are distorted and resized. NOTE: this argument can be an integer or a
-      tensor
-    resize_method: one of the strings 'round_robin', 'nearest', 'bilinear',
-      'bicubic', or 'area'.
-    summary_verbosity: Verbosity level for summary ops. Pass 0 to disable both
-      summaries and checkpoints.
+    image: 3-D Tensor of image. If dtype is tf.float32 then the range should be
+      [0, 1], otherwise it would converted to tf.float32 assuming that the range
+      is [0, MAX], where MAX is largest positive representable number for
+      int(8/16/32) data type (see `tf.image.convert_image_dtype` for details).
+    height: integer
+    width: integer
+    central_fraction: Optional Float, fraction of the image to crop.
+    scope: Optional scope for name_scope.
   Returns:
-    An image of size (output_height, output_width, 3) that is resized and
-    cropped as described above.
+    3-D float Tensor of prepared image.
   """
-  # TODO(reedwm): Currently we resize then crop. Investigate if it's faster to
-  # crop then resize.
-  with tf.name_scope('eval_image'):
-    if summary_verbosity >= 3:
-      tf.summary.image(
-          'original_image', tf.expand_dims(image, 0))
+  with tf.name_scope(scope, 'eval_image', [image, height, width]):
+    if image.dtype != tf.float32:
+      image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    # Crop the central region of the image with an area containing 87.5% of
+    # the original image.
+    if central_fraction:
+      image = tf.image.central_crop(image, central_fraction=central_fraction)
 
-    shape = tf.shape(image)
-    image_height = shape[0]
-    image_width = shape[1]
-    image_height_float = tf.cast(image_height, tf.float32)
-    image_width_float = tf.cast(image_width, tf.float32)
-
-    scale_factor = 1.15
-
-    # Compute resize_height and resize_width to be the minimum values such that
-    #   1. The aspect ratio is maintained (i.e. resize_height / resize_width is
-    #      image_height / image_width), and
-    #   2. resize_height >= height * `scale_factor`, and
-    #   3. resize_width >= width * `scale_factor`
-    max_ratio = tf.maximum(height / image_height_float,
-                           width / image_width_float)
-    resize_height = tf.cast(image_height_float * max_ratio * scale_factor,
-                            tf.int32)
-    resize_width = tf.cast(image_width_float * max_ratio * scale_factor,
-                           tf.int32)
-
-    # Resize the image to shape (`resize_height`, `resize_width`)
-    image_resize_method = get_image_resize_method(resize_method, batch_position)
-    distorted_image = tf.image.resize_images(image,
-                                             [resize_height, resize_width],
-                                             image_resize_method,
-                                             align_corners=False)
-
-    # Do a central crop of the image to size (height, width).
-    total_crop_height = (resize_height - height)
-    crop_top = total_crop_height // 2
-    total_crop_width = (resize_width - width)
-    crop_left = total_crop_width // 2
-    distorted_image = tf.slice(distorted_image, [crop_top, crop_left, 0],
-                               [height, width, 3])
-
-    distorted_image.set_shape([height, width, 3])
-    if summary_verbosity >= 3:
-      tf.summary.image(
-          'cropped_resized_image', tf.expand_dims(distorted_image, 0))
-    image = distorted_image
-  return image
+    if height and width:
+      # Resize the image to the specified height and width.
+      image = tf.expand_dims(image, 0)
+      image = tf.image.resize_bilinear(image, [height, width],
+                                       align_corners=False)
+      image = tf.squeeze(image, [0])
+    image = tf.subtract(image, 0.5)
+    image = tf.multiply(image, 2.0)
+    return image
 
 
-def train_image(image_buffer,
-                height,
-                width,
-                bbox,
+
+def apply_with_random_selector(x, func, num_cases):
+  """Computes func(x, sel), with sel sampled from [0...num_cases-1].
+
+  Args:
+    x: input Tensor.
+    func: Python function to apply.
+    num_cases: Python int32, number of cases to sample sel from.
+
+  Returns:
+    The result of func(x, sel), where func receives the value of the
+    selector as a python integer, but sel is sampled dynamically.
+  """
+  sel = tf.random_uniform([], maxval=num_cases, dtype=tf.int32)
+  # Pass the real x only to one of the func calls.
+  return control_flow_ops.merge([
+      func(control_flow_ops.switch(x, tf.equal(sel, case))[1], case)
+      for case in range(num_cases)])[0]
+
+
+def distort_color(image, color_ordering=0, fast_mode=True, scope=None):
+  """Distort the color of a Tensor image.
+
+  Each color distortion is non-commutative and thus ordering of the color ops
+  matters. Ideally we would randomly permute the ordering of the color ops.
+  Rather then adding that level of complication, we select a distinct ordering
+  of color ops for each preprocessing thread.
+
+  Args:
+    image: 3-D Tensor containing single image in [0, 1].
+    color_ordering: Python int, a type of distortion (valid values: 0-3).
+    fast_mode: Avoids slower ops (random_hue and random_contrast)
+    scope: Optional scope for name_scope.
+  Returns:
+    3-D Tensor color-distorted image on range [0, 1]
+  Raises:
+    ValueError: if color_ordering not in [0, 3]
+  """
+  with tf.name_scope(scope, 'distort_color', [image]):
+    if fast_mode:
+      if color_ordering == 0:
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+      else:
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+    else:
+      if color_ordering == 0:
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_hue(image, max_delta=0.2)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+      elif color_ordering == 1:
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        image = tf.image.random_hue(image, max_delta=0.2)
+      elif color_ordering == 2:
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        image = tf.image.random_hue(image, max_delta=0.2)
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+      elif color_ordering == 3:
+        image = tf.image.random_hue(image, max_delta=0.2)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        image = tf.image.random_brightness(image, max_delta=32. / 255.)
+      else:
+        raise ValueError('color_ordering must be in [0, 3]')
+
+    # The random_* ops do not necessarily clamp.
+    return tf.clip_by_value(image, 0.0, 1.0)
+
+
+def distorted_bounding_box_crop(image,
+                                bbox,
+                                min_object_covered=0.1,
+                                aspect_ratio_range=(0.75, 1.33),
+                                area_range=(0.05, 1.0),
+                                max_attempts=100,
+                                scope=None):
+  """Generates cropped_image using a one of the bboxes randomly distorted.
+
+  See `tf.image.sample_distorted_bounding_box` for more documentation.
+
+  Args:
+    image: 3-D Tensor of image (it will be converted to floats in [0, 1]).
+    bbox: 3-D float Tensor of bounding boxes arranged [1, num_boxes, coords]
+      where each coordinate is [0, 1) and the coordinates are arranged
+      as [ymin, xmin, ymax, xmax]. If num_boxes is 0 then it would use the whole
+      image.
+    min_object_covered: An optional `float`. Defaults to `0.1`. The cropped
+      area of the image must contain at least this fraction of any bounding box
+      supplied.
+    aspect_ratio_range: An optional list of `floats`. The cropped area of the
+      image must have an aspect ratio = width / height within this range.
+    area_range: An optional list of `floats`. The cropped area of the image
+      must contain a fraction of the supplied image within in this range.
+    max_attempts: An optional `int`. Number of attempts at generating a cropped
+      region of the image of the specified constraints. After `max_attempts`
+      failures, return the entire image.
+    scope: Optional scope for name_scope.
+  Returns:
+    A tuple, a 3-D Tensor cropped_image and the distorted bbox
+  """
+  with tf.name_scope(scope, 'distorted_bounding_box_crop', [image, bbox]):
+    # Each bounding box has shape [1, num_boxes, box coords] and
+    # the coordinates are ordered [ymin, xmin, ymax, xmax].
+
+    # A large fraction of image datasets contain a human-annotated bounding
+    # box delineating the region of the image containing the object of interest.
+    # We choose to create a new bounding box for the object which is a randomly
+    # distorted version of the human-annotated bounding box that obeys an
+    # allowed range of aspect ratios, sizes and overlap with the human-annotated
+    # bounding box. If no box is supplied, then we assume the bounding box is
+    # the entire image.
+    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+        tf.shape(image),
+        bounding_boxes=bbox,
+        min_object_covered=min_object_covered,
+        aspect_ratio_range=aspect_ratio_range,
+        area_range=area_range,
+        max_attempts=max_attempts,
+        use_image_if_no_bounding_boxes=True)
+    bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
+
+    # Crop the image to the specified bounding box.
+    cropped_image = tf.slice(image, bbox_begin, bbox_size)
+    return cropped_image, distort_bbox
+
+
+
+def preprocess_for_train(image, height,width, bbox,
                 batch_position,
-                resize_method,
-                distortions,
+                fast_mode=True,
                 scope=None,
-                summary_verbosity=0,
-                distort_color_in_yiq=False,
-                fuse_decode_and_crop=False):
+                add_image_summaries=True):
   """Distort one image for training a network.
 
   Distorting images provides a useful technique for augmenting the data
@@ -273,7 +363,10 @@ def train_image(image_buffer,
   of the image that do not effect the label.
 
   Args:
-    image_buffer: scalar string Tensor representing the raw JPEG image buffer.
+    image: 3-D Tensor of image. If dtype is tf.float32 then the range should be
+      [0, 1], otherwise it would converted to tf.float32 assuming that the range
+      is [0, MAX], where MAX is largest positive representable number for
+      int(8/16/32) data type (see `tf.image.convert_image_dtype` for details).
     height: integer
     width: integer
     bbox: 3-D float Tensor of bounding boxes arranged [1, num_boxes, coords]
@@ -282,96 +375,68 @@ def train_image(image_buffer,
     batch_position: position of the image in a batch, which affects how images
       are distorted and resized. NOTE: this argument can be an integer or a
       tensor
-    resize_method: round_robin, nearest, bilinear, bicubic, or area.
-    distortions: If true, apply full distortions for image colors.
     scope: Optional scope for op_scope.
-    summary_verbosity: Verbosity level for summary ops. Pass 0 to disable both
-      summaries and checkpoints.
-    distort_color_in_yiq: distort color of input images in YIQ space.
-    fuse_decode_and_crop: fuse the decode/crop operation.
+    add_image_summaries: Enable image summaries.
   Returns:
-    3-D float Tensor of distorted image used for training.
+    3-D float Tensor of distorted image used for training with range [-1, 1].
   """
-  # with tf.op_scope([image, height, width, bbox], scope, 'distort_image'):
-  # with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
-  with tf.name_scope(scope or 'distort_image'):
-    # A large fraction of image datasets contain a human-annotated bounding box
-    # delineating the region of the image containing the object of interest.  We
-    # choose to create a new bounding box for the object which is a randomly
-    # distorted version of the human-annotated bounding box that obeys an
-    # allowed range of aspect ratios, sizes and overlap with the human-annotated
-    # bounding box. If no box is supplied, then we assume the bounding box is
-    # the entire image.
-    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
-        tf.image.extract_jpeg_shape(image_buffer),
-        bounding_boxes=bbox,
-        min_object_covered=0.1,
-        aspect_ratio_range=[0.75, 1.33],
-        area_range=[0.05, 1.0],
-        max_attempts=100,
-        use_image_if_no_bounding_boxes=True)
-    bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
-    if summary_verbosity >= 3:
-      image = tf.image.decode_jpeg(image_buffer, channels=3,
-                                   dct_method='INTEGER_FAST')
+
+  with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
+    if bbox is None:
+      bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
+                         dtype=tf.float32,
+                         shape=[1, 1, 4])
+    if image.dtype != tf.float32:
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-      image_with_distorted_box = tf.image.draw_bounding_boxes(
-          tf.expand_dims(image, 0), distort_bbox)
-      tf.summary.image(
-          'images_with_distorted_bounding_box',
-          image_with_distorted_box)
+    # Each bounding box has shape [1, num_boxes, box coords] and
+    # the coordinates are ordered [ymin, xmin, ymax, xmax].
+    image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
+                                                  bbox)
+    if add_image_summaries:
+      tf.summary.image('image_with_bounding_boxes', image_with_box)
 
-    # Crop the image to the specified bounding box.
-    if fuse_decode_and_crop:
-      offset_y, offset_x, _ = tf.unstack(bbox_begin)
-      target_height, target_width, _ = tf.unstack(bbox_size)
-      crop_window = tf.stack([offset_y, offset_x, target_height, target_width])
-      image = tf.image.decode_and_crop_jpeg(
-          image_buffer, crop_window, channels=3)
-    else:
-      image = tf.image.decode_jpeg(image_buffer, channels=3,
-                                   dct_method='INTEGER_FAST')
-      image = tf.slice(image, bbox_begin, bbox_size)
-
-    distorted_image = tf.image.random_flip_left_right(image)
-
-    # This resizing operation may distort the images because the aspect
-    # ratio is not respected.
-    image_resize_method = get_image_resize_method(resize_method, batch_position)
-    if cnn_util.tensorflow_version() >= 11:
-      distorted_image = tf.image.resize_images(
-          distorted_image, [height, width],
-          image_resize_method,
-          align_corners=False)
-    else:
-      distorted_image = tf.image.resize_images(
-          distorted_image,
-          height,
-          width,
-          image_resize_method,
-          align_corners=False)
+    distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
-    distorted_image.set_shape([height, width, 3])
-    if summary_verbosity >= 3:
-      tf.summary.image('cropped_resized_maybe_flipped_image',
+    distorted_image.set_shape([None, None, 3])
+    image_with_distorted_box = tf.image.draw_bounding_boxes(
+        tf.expand_dims(image, 0), distorted_bbox)
+    if add_image_summaries:
+      tf.summary.image('images_with_distorted_bounding_box',
+                       image_with_distorted_box)
+    
+    
+    # This resizing operation may distort the images because the aspect
+    # ratio is not respected. We select a resize method in a round robin
+    # fashion based on the thread number.
+    # Note that ResizeMethod contains 4 enumerated resizing methods.
+
+    # We select only 1 case for fast_mode bilinear.
+    num_resize_cases = 1 if fast_mode else 4
+    distorted_image = apply_with_random_selector(
+        distorted_image,
+        lambda x, method: tf.image.resize_images(x, [height, width], method),
+        num_cases=num_resize_cases)
+
+    if add_image_summaries:
+      tf.summary.image('cropped_resized_image',
                        tf.expand_dims(distorted_image, 0))
+    
+    
+    # Randomly flip the image horizontally.
+    distorted_image = tf.image.random_flip_left_right(distorted_image)
+    # Randomly distort the colors. There are 1 or 4 ways to do it.
+    num_distort_cases = 1 if fast_mode else 4
+    distorted_image = apply_with_random_selector(
+        distorted_image,
+        lambda x, ordering: distort_color(x, ordering, fast_mode),
+        num_cases=num_distort_cases)
 
-    if distortions:
-      distorted_image = tf.cast(distorted_image, dtype=tf.float32)
-      # Images values are expected to be in [0,1] for color distortion.
-      distorted_image /= 255.
-      # Randomly distort the colors.
-      distorted_image = distort_color(distorted_image, batch_position,
-                                      distort_color_in_yiq=distort_color_in_yiq)
-
-      # Note: This ensures the scaling matches the output of eval_image
-      distorted_image *= 255
-
-    if summary_verbosity >= 3:
-      tf.summary.image(
-          'final_distorted_image',
-          tf.expand_dims(distorted_image, 0))
+    if add_image_summaries:
+      tf.summary.image('final_distorted_image',
+                       tf.expand_dims(distorted_image, 0))
+    distorted_image = tf.subtract(distorted_image, 0.5)
+    distorted_image = tf.multiply(distorted_image, 2.0)
     return distorted_image
 
 
@@ -399,13 +464,13 @@ def distort_color(image, batch_position=0, distort_color_in_yiq=False,
     def distort_fn_0(image=image):
       """Variant 0 of distort function."""
       image = tf.image.random_brightness(image, max_delta=32. / 255.)
-      if distort_color_in_yiq:
-        image = distort_image_ops.random_hsv_in_yiq(
-            image, lower_saturation=0.5, upper_saturation=1.5,
-            max_delta_hue=0.2 * math.pi)
-      else:
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
+      #if distort_color_in_yiq:
+      #  image = distort_image_ops.random_hsv_in_yiq(
+      #      image, lower_saturation=0.5, upper_saturation=1.5,
+      #      max_delta_hue=0.2 * math.pi)
+      #else:
+      image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+      image = tf.image.random_hue(image, max_delta=0.2)
       image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
       return image
 
@@ -413,13 +478,13 @@ def distort_color(image, batch_position=0, distort_color_in_yiq=False,
       """Variant 1 of distort function."""
       image = tf.image.random_brightness(image, max_delta=32. / 255.)
       image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-      if distort_color_in_yiq:
-        image = distort_image_ops.random_hsv_in_yiq(
-            image, lower_saturation=0.5, upper_saturation=1.5,
-            max_delta_hue=0.2 * math.pi)
-      else:
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
+      #if distort_color_in_yiq:
+      #  image = distort_image_ops.random_hsv_in_yiq(
+      #      image, lower_saturation=0.5, upper_saturation=1.5,
+      #      max_delta_hue=0.2 * math.pi)
+      #else:
+      image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+      image = tf.image.random_hue(image, max_delta=0.2)
       return image
 
     image = utils.smart_cond(batch_position % 2 == 0, distort_fn_0,
@@ -464,29 +529,22 @@ class RecordInputImagePreprocessor(object):
     self.batch_size_per_split = self.batch_size // self.num_splits
     self.summary_verbosity = summary_verbosity
 
-  def preprocess(self, image_buffer, bbox, batch_position):
+  def image_preprocess(self, image_buffer, bbox, batch_position):
     """Preprocessing image_buffer as a function of its batch position."""
     if self.train:
-      image = train_image(image_buffer, self.height, self.width, bbox,
-                          batch_position, self.resize_method, self.distortions,
-                          None, summary_verbosity=self.summary_verbosity,
-                          distort_color_in_yiq=self.distort_color_in_yiq,
-                          fuse_decode_and_crop=self.fuse_decode_and_crop)
-    else:
+      image_buffer = tf.image.decode_jpeg(
+          image_buffer, channels=3, dct_method='INTEGER_FAST')
+      image = preprocess_for_train(image_buffer, self.height, self.width, bbox,
+                          batch_position) 
+    else: 
       image = tf.image.decode_jpeg(
           image_buffer, channels=3, dct_method='INTEGER_FAST')
-      image = eval_image(image, self.height, self.width, batch_position,
-                         self.resize_method,
-                         summary_verbosity=self.summary_verbosity)
-    # Note: image is now float32 [height,width,3] with range [0, 255]
-
-    # image = tf.cast(image, tf.uint8) # HACK TESTING
-
+      image = preprocess_for_eval(image, self.height, self.width)
     return image
 
   def parse_and_preprocess(self, value, batch_position):
     image_buffer, label_index, bbox, _ = parse_example_proto(value)
-    image = self.preprocess(image_buffer, bbox, batch_position)
+    image = self.image_preprocess(image_buffer, bbox, batch_position)
     return (label_index, image)
 
   def minibatch(self, dataset, subset, use_datasets, cache_data,
@@ -557,256 +615,3 @@ class RecordInputImagePreprocessor(object):
                                          [self.batch_size_per_split])
       return images, labels
 
-
-class Cifar10ImagePreprocessor(object):
-  """Preprocessor for Cifar10 input images."""
-
-  def __init__(self,
-               height,
-               width,
-               batch_size,
-               num_splits,
-               dtype,
-               train,
-               distortions,
-               resize_method,
-               shift_ratio,
-               summary_verbosity=0,
-               distort_color_in_yiq=False,
-               fuse_decode_and_crop=False):
-    # Process images of this size. Depending on the model configuration, the
-    # size of the input layer might differ from the original size of 32 x 32.
-    self.height = height or 32
-    self.width = width or 32
-    self.depth = 3
-    self.batch_size = batch_size
-    self.num_splits = num_splits
-    self.dtype = dtype
-    self.train = train
-    self.distortions = distortions
-    self.shift_ratio = shift_ratio
-    del distort_color_in_yiq
-    del fuse_decode_and_crop
-    del resize_method
-    del shift_ratio  # unused, because a RecordInput is not used
-    if self.batch_size % self.num_splits != 0:
-      raise ValueError(
-          ('batch_size must be a multiple of num_splits: '
-           'batch_size %d, num_splits: %d') %
-          (self.batch_size, self.num_splits))
-    self.batch_size_per_split = self.batch_size // self.num_splits
-    self.summary_verbosity = summary_verbosity
-
-  def _distort_image(self, image):
-    """Distort one image for training a network.
-
-    Adopted the standard data augmentation scheme that is widely used for
-    this dataset: the images are first zero-padded with 4 pixels on each side,
-    then randomly cropped to again produce distorted images; half of the images
-    are then horizontally mirrored.
-
-    Args:
-      image: input image.
-    Returns:
-      distored image.
-    """
-    image = tf.image.resize_image_with_crop_or_pad(
-        image, self.height + 8, self.width + 8)
-    distorted_image = tf.random_crop(image,
-                                     [self.height, self.width, self.depth])
-    # Randomly flip the image horizontally.
-    distorted_image = tf.image.random_flip_left_right(distorted_image)
-    if self.summary_verbosity >= 3:
-      tf.summary.image('distorted_image', tf.expand_dims(distorted_image, 0))
-    return distorted_image
-
-  def _eval_image(self, image):
-    """Get the image for model evaluation."""
-    distorted_image = tf.image.resize_image_with_crop_or_pad(
-        image, self.width, self.height)
-    if self.summary_verbosity >= 3:
-      tf.summary.image('cropped.image', tf.expand_dims(distorted_image, 0))
-    return distorted_image
-
-  def preprocess(self, raw_image):
-    """Preprocessing raw image."""
-    if self.summary_verbosity >= 3:
-      tf.summary.image('raw.image', tf.expand_dims(raw_image, 0))
-    if self.train and self.distortions:
-      image = self._distort_image(raw_image)
-    else:
-      image = self._eval_image(raw_image)
-    return image
-
-  def minibatch(self, dataset, subset, use_datasets, cache_data,
-                shift_ratio=-1):
-    # TODO(jsimsa): Implement datasets code path
-    del use_datasets, cache_data, shift_ratio
-    with tf.name_scope('batch_processing'):
-      all_images, all_labels = dataset.read_data_files(subset)
-      all_images = tf.constant(all_images)
-      all_labels = tf.constant(all_labels)
-      input_image, input_label = tf.train.slice_input_producer(
-          [all_images, all_labels])
-      input_image = tf.cast(input_image, self.dtype)
-      input_label = tf.cast(input_label, tf.int32)
-      # Ensure that the random shuffling has good mixing properties.
-      min_fraction_of_examples_in_queue = 0.4
-      min_queue_examples = int(dataset.num_examples_per_epoch(subset) *
-                               min_fraction_of_examples_in_queue)
-      raw_images, raw_labels = tf.train.shuffle_batch(
-          [input_image, input_label], batch_size=self.batch_size,
-          capacity=min_queue_examples + 3 * self.batch_size,
-          min_after_dequeue=min_queue_examples)
-
-      images = [[] for i in range(self.num_splits)]
-      labels = [[] for i in range(self.num_splits)]
-
-      # Create a list of size batch_size, each containing one image of the
-      # batch. Without the unstack call, raw_images[i] would still access the
-      # same image via a strided_slice op, but would be slower.
-      raw_images = tf.unstack(raw_images, axis=0)
-      raw_labels = tf.unstack(raw_labels, axis=0)
-      for i in xrange(self.batch_size):
-        split_index = i % self.num_splits
-        # The raw image read from data has the format [depth, height, width]
-        # reshape to the format returned by minibatch.
-        raw_image = tf.reshape(raw_images[i],
-                               [dataset.depth, dataset.height, dataset.width])
-        raw_image = tf.transpose(raw_image, [1, 2, 0])
-        image = self.preprocess(raw_image)
-        images[split_index].append(image)
-
-        labels[split_index].append(raw_labels[i])
-
-      for split_index in xrange(self.num_splits):
-        images[split_index] = tf.parallel_stack(images[split_index])
-        labels[split_index] = tf.parallel_stack(labels[split_index])
-      return images, labels
-
-
-class SyntheticImagePreprocessor(object):
-  """Preprocessor used for images and labels."""
-
-  def __init__(self, height, width, batch_size, num_splits,
-               dtype, train, distortions, resize_method, shift_ratio,
-               summary_verbosity, distort_color_in_yiq=False,
-               fuse_decode_and_crop=False):
-    del train, distortions, resize_method, summary_verbosity
-    del distort_color_in_yiq
-    del fuse_decode_and_crop
-    self.batch_size = batch_size
-    self.height = height
-    self.width = width
-    self.depth = 3
-    self.dtype = dtype
-    self.num_splits = num_splits
-    self.shift_ratio = shift_ratio
-
-  def minibatch(self, dataset, subset, use_datasets, cache_data,
-                shift_ratio=-1):
-    """Get synthetic image batches."""
-    del subset, use_datasets, cache_data, shift_ratio
-    input_shape = [self.batch_size, self.height, self.width, self.depth]
-    images = tf.truncated_normal(
-        input_shape,
-        dtype=self.dtype,
-        stddev=1e-1,
-        name='synthetic_images')
-    labels = tf.random_uniform(
-        [self.batch_size],
-        minval=0,
-        maxval=dataset.num_classes - 1,
-        dtype=tf.int32,
-        name='synthetic_labels')
-    # Note: This results in a H2D copy, but no computation
-    # Note: This avoids recomputation of the random values, but still
-    #         results in a H2D copy.
-    images = tf.contrib.framework.local_variable(images, name='images')
-    labels = tf.contrib.framework.local_variable(labels, name='labels')
-    if self.num_splits == 1:
-      images_splits = [images]
-      labels_splits = [labels]
-    else:
-      images_splits = tf.split(images, self.num_splits, 0)
-      labels_splits = tf.split(labels, self.num_splits, 0)
-    return images_splits, labels_splits
-
-
-class TestImagePreprocessor(object):
-  """Preprocessor used for testing.
-
-  set_fake_data() sets which images and labels will be output by minibatch(),
-  and must be called before minibatch(). This allows tests to easily specify
-  a set of images to use for training, without having to create any files.
-
-  Queue runners must be started for this preprocessor to work.
-  """
-
-  def __init__(self,
-               height,
-               width,
-               batch_size,
-               num_splits,
-               dtype,
-               train=None,
-               distortions=None,
-               resize_method=None,
-               shift_ratio=0,
-               summary_verbosity=0,
-               distort_color_in_yiq=False,
-               fuse_decode_and_crop=False):
-    del height, width, train, distortions, resize_method
-    del summary_verbosity, fuse_decode_and_crop, distort_color_in_yiq
-    self.batch_size = batch_size
-    self.num_splits = num_splits
-    self.dtype = dtype
-    self.expected_subset = None
-    self.shift_ratio = shift_ratio
-
-  def set_fake_data(self, fake_images, fake_labels):
-    assert len(fake_images.shape) == 4
-    assert len(fake_labels.shape) == 1
-    num_images = fake_images.shape[0]
-    assert num_images == fake_labels.shape[0]
-    assert num_images % self.batch_size == 0
-    self.fake_images = fake_images
-    self.fake_labels = fake_labels
-
-  def minibatch(self, dataset, subset, use_datasets, cache_data,
-                shift_ratio=0):
-    """Get test image batches."""
-    del dataset, use_datasets, cache_data
-    if (not hasattr(self, 'fake_images') or
-        not hasattr(self, 'fake_labels')):
-      raise ValueError('Must call set_fake_data() before calling minibatch '
-                       'on TestImagePreprocessor')
-    if self.expected_subset is not None:
-      assert subset == self.expected_subset
-
-    shift_ratio = shift_ratio or self.shift_ratio
-    fake_images = cnn_util.roll_numpy_batches(self.fake_images, self.batch_size,
-                                              shift_ratio)
-    fake_labels = cnn_util.roll_numpy_batches(self.fake_labels, self.batch_size,
-                                              shift_ratio)
-
-    with tf.name_scope('batch_processing'):
-      image_slice, label_slice = tf.train.slice_input_producer(
-          [fake_images, fake_labels],
-          shuffle=False,
-          name='image_slice')
-      raw_images, raw_labels = tf.train.batch(
-          [image_slice, label_slice], batch_size=self.batch_size,
-          name='image_batch')
-      images = [[] for _ in range(self.num_splits)]
-      labels = [[] for _ in range(self.num_splits)]
-      for i in xrange(self.batch_size):
-        split_index = i % self.num_splits
-        raw_image = tf.cast(raw_images[i], self.dtype)
-        images[split_index].append(raw_image)
-        labels[split_index].append(raw_labels[i])
-      for split_index in xrange(self.num_splits):
-        images[split_index] = tf.parallel_stack(images[split_index])
-        labels[split_index] = tf.parallel_stack(labels[split_index])
-
-      return images, labels

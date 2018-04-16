@@ -116,7 +116,7 @@ class Inceptionv3Model(model.Model):
       incept_v3_aux(cnn)                     # Auxillary Head logits
     inception_v3_d(cnn)                      # 17 x 17 x 1280 mixed_8
     inception_v3_e(cnn, 'avg')               # 8 x 8 x 2048 mixed_9
-    inception_v3_e(cnn, 'max')               # 8 x 8 x 2048 mixed_10
+    inception_v3_e(cnn, 'avg')               # 8 x 8 x 2048 mixed_10
     cnn.apool(8, 8, 1, 1, 'VALID')           # 8 x 8 x 2048
     cnn.reshape([-1, 2048])                  # 1 x 1 x 2048
 
