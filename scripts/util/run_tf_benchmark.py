@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from argparse import ArgumentParser
+from platform_util import platform
 
 class BenchmarkUtil:
 
@@ -34,7 +35,17 @@ class BenchmarkUtil:
 				"If this parameter is not specified, the benchmark will use random/dummy data.",
                             dest="data_location", default=None)
 
+    self.args, unknown_args = arg_parser.parse_known_args()
+
+    p = platform()
+    #These arguments are availble for those that know about them, but they won't be
+    #printed by the --help option
+    arg_parser.add_argument('-a', "--num_intra_threads", type=int, help="Specify the number of threads within the layer", dest="num_intra_threads",
+                          default=(p.num_cores_per_socket() * p.num_cpu_sockets()))
+    arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="num_inter_threads",
+                          default=(p.num_cpu_sockets()))
     self.args = arg_parser.parse_args()
+    print self.args
 
 if __name__ == "__main__":
   util = BenchmarkUtil()
