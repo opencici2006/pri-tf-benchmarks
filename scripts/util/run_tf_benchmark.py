@@ -2,6 +2,8 @@
 from argparse import ArgumentParser
 from platform_util import platform
 
+DEFAULT_INTEROP_VALUE_ = 2
+
 class BenchmarkUtil:
 
   def main(self):
@@ -43,7 +45,7 @@ class BenchmarkUtil:
     arg_parser.add_argument('-a', "--num_intra_threads", type=int, help="Specify the number of threads within the layer", dest="num_intra_threads",
                           default=(p.num_cores_per_socket() * p.num_cpu_sockets()))
     arg_parser.add_argument('-e', "--num_inter_threads", type=int, help='Specify the number threads between layers', dest="num_inter_threads",
-                          default=(p.num_cpu_sockets()))
+                          default=DEFAULT_INTEROP_VALUE_)
     self.args = arg_parser.parse_args()
     print self.args
 
