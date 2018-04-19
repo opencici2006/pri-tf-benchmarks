@@ -30,7 +30,7 @@ echo "GCC ${GCC_VERSION_STR}: OK"
 # AVX512CD
 # Ubuntu 16.04 LTS default gcc version is 5.4.0, which doesn't have support for -march=skylake*, but this version of the compiler supports -march=broadwell and explicit support for each of the skylake ISA instructions. 
 BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
-		--copt=-march=broadwell \ 
+		--copt=-march=broadwell \
 		--copt=-mclflushopt \
                 --copt=-mxsavec \
                 --copt=-mxsaves \
