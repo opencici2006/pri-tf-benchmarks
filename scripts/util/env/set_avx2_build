@@ -1,7 +1,7 @@
 #This file exports the bazel build opts for AVX2 platforms (broadwell and haswell). By setting -march=haswell and -mtune=broadwell, the binary will run on systems haswell and newer, but will be tuned for broadwell.
 
-MIN_GCC_MAJOR_VERSION=6
-MIN_GCC_MINOR_VERSION=1
+MIN_GCC_MAJOR_VERSION=5
+MIN_GCC_MINOR_VERSION=3
 MIN_GCC_REVISION=0
 GCC_VERSION_STR=$(gcc -dumpversion)
 echo "GCC Version: ${GCC_VERSION_STR}"

@@ -1,7 +1,7 @@
 #This script checks to make sure that GCC is at least 5.3.0, and then exports the bazel build opts for AVX platforms (ivybridge and sandybridge). By setting -march=sandybridge and -mtune=ivybridge, the binary will run on systems sandybridge and newer, but will be tuned for ivybridge.
 
-MIN_GCC_MAJOR_VERSION=6
-MIN_GCC_MINOR_VERSION=1
+MIN_GCC_MAJOR_VERSION=5
+MIN_GCC_MINOR_VERSION=3
 MIN_GCC_REVISION=0
 GCC_VERSION_STR=$(gcc -dumpversion)
 echo "GCC Version: ${GCC_VERSION_STR}"
