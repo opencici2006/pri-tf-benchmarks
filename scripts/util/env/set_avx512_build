@@ -38,7 +38,8 @@ BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
                 --copt=-mavx512vl \
                 --copt=-mavx512bw \
                 --copt=-mavx512dq \
-                --copt=-mavx512cd"
+                --copt=-mavx512cd \
+                --copt=-O3"
 
 echo "exporting BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}"
 export BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}

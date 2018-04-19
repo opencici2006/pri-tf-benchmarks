@@ -25,7 +25,8 @@ echo "GCC ${GCC_VERSION_STR}: OK"
 #These two options should be equivalent to all the options commented out below. -march=sandybridge enables MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AVX, AES and PCLMUL instruction set support. See https://gcc.gnu.org/onlinedocs/gcc-6.2.0/gcc/x86-Options.html#x86-Options
 BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
 		--copt=-march=sandybridge \
-		--copt=-mtune=ivybridge"
+		--copt=-mtune=ivybridge \
+		--copt=-O3"
 #                --copt=-mcx16 \ 	AMD Bdver1
 #                --copt=-msahf \	P4
 #                --copt=-maes \ 	SNB
