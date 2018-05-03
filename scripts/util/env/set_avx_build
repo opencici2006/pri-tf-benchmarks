@@ -26,7 +26,17 @@ echo "GCC ${GCC_VERSION_STR}: OK"
 BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
 		--copt=-march=sandybridge \
 		--copt=-mtune=ivybridge \
-		--copt=-O3"
+		--copt=-O3 \
+		--copt=-Wformat \
+               	--copt=-Wformat-security \
+               	--copt=-fstack-protector \
+               	--copt=-fPIC \
+               	--copt=-fpic \
+		--linkopt=-znoexecstack \
+		--linkopt=-zrelro \
+		--linkopt=-znow \
+		--linkopt=-fstack-protector \
+		--linkopt=-pie"
 #                --copt=-mcx16 \ 	AMD Bdver1
 #                --copt=-msahf \	P4
 #                --copt=-maes \ 	SNB
