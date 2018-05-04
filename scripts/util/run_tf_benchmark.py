@@ -61,9 +61,8 @@ class benchmark_util:
 				help='Print verbose information.', 
 				dest='verbose',
 				action='store_true')
-    args = arg_parser.parse_args()
-
-    mi = model_initializer(args)
+    args,unknown = arg_parser.parse_known_args()
+    mi = model_initializer(args,unknown)
     mi.run()
 
 if __name__ == "__main__":
