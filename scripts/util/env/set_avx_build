@@ -1,0 +1,68 @@
+#This script checks to make sure that GCC is at least 5.3.0, and then exports the bazel build opts for AVX platforms (ivybridge and sandybridge). By setting -march=sandybridge and -mtune=ivybridge, the binary will run on systems sandybridge and newer, but will be tuned for ivybridge.
+
+MIN_GCC_MAJOR_VERSION=5
+MIN_GCC_MINOR_VERSION=3
+MIN_GCC_REVISION=0
+GCC_VERSION_STR=$(gcc -dumpversion)
+echo "GCC Version: ${GCC_VERSION_STR}"
+IFS='.' read -r -a GCC_VERSION <<< ${GCC_VERSION_STR}
+if [ "${GCC_VERSION[0]}" -lt "${MIN_GCC_MAJOR_VERSION}" ] ;
+then
+  echo "Your version of GCC is too old: ${GCC_VERSION_STR}; it must be at least ${MIN_GCC_MAJOR_VERSION}.${MIN_GCC_MINOR_VERSION}.${MIN_GCC_REVISION}"
+  return 1 
+fi
+
+if [ "${GCC_VERSION[1]}" -lt ${MIN_GCC_MINOR_VERSION} ] ;
+then
+  echo "Your version of GCC is too old: ${GCC_VERSION_STR}; it must be at least ${MIN_GCC_MAJOR_VERSION}.${MIN_GCC_MINOR_VERSION}."
+  return 1
+fi
+
+
+echo "GCC ${GCC_VERSION_STR}: OK"
+
+#Don't use the C++11 ABI; use the old one 
+#These two options should be equivalent to all the options commented out below. -march=sandybridge enables MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AVX, AES and PCLMUL instruction set support. See https://gcc.gnu.org/onlinedocs/gcc-6.2.0/gcc/x86-Options.html#x86-Options
+BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
+		--copt=-march=sandybridge \
+		--copt=-mtune=ivybridge \
+		--copt=-O3 \
+		--copt=-Wformat \
+               	--copt=-Wformat-security \
+               	--copt=-fstack-protector \
+               	--copt=-fPIC \
+               	--copt=-fpic \
+		--linkopt=-znoexecstack \
+		--linkopt=-zrelro \
+		--linkopt=-znow \
+		--linkopt=-fstack-protector \
+		--linkopt=-pie"
+#                --copt=-mcx16 \ 	AMD Bdver1
+#                --copt=-msahf \	P4
+#                --copt=-maes \ 	SNB
+#                --copt=-mpclmul \ 	IVB
+#                --copt=-mabm \		AMD Barcelona
+#                --copt=-mno-lwp \	AMD Bdver1
+#                --copt=-mfma \ 	HSW
+#                --copt=-mno-fma4 \	AMD Bdver1
+#                --copt=-mno-xop \	AMD Bdver1
+#                --copt=-mbmi \ 	HSW
+#                --copt=-mbmi2 \	HSW
+#                --copt=-mno-tbm \	AMD Bdver2
+#                --copt=-mavx \		SNB
+#                --copt=-msse4.2 \	NHM
+#                --copt=-msse4.1 \	NHM
+#                --copt=-mlzcnt \	AMD
+#                --copt=-mno-rtm \	AMD
+#                --copt=-mno-hle \	HSW 
+#                --copt=-mrdrnd \	IVB
+#                --copt=-mfsgsbase \	IVB
+#                --copt=-mno-rdseed \	BDW
+#                --copt=-mno-prfchw \	BDW
+#                --copt=-mno-adx \	
+#                --copt=-mfxsr \	
+#                --copt=-mxsave \	
+#                --copt=-mxsaveopt"
+
+echo "exporting BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}"
+export BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}
