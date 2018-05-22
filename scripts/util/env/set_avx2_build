@@ -1,0 +1,76 @@
+#This file exports the bazel build opts for AVX2 platforms (broadwell and haswell). By setting -march=haswell and -mtune=broadwell, the binary will run on systems haswell and newer, but will be tuned for broadwell.
+
+MIN_GCC_MAJOR_VERSION=5
+MIN_GCC_MINOR_VERSION=3
+MIN_GCC_REVISION=0
+GCC_VERSION_STR=$(gcc -dumpversion)
+echo "GCC Version: ${GCC_VERSION_STR}"
+IFS='.' read -r -a GCC_VERSION <<< ${GCC_VERSION_STR}
+if [ "${GCC_VERSION[0]}" -lt "${MIN_GCC_MAJOR_VERSION}" ] ;
+then
+  echo "Your version of GCC is too old: ${GCC_VERSION_STR}; it must be at least ${MIN_GCC_MAJOR_VERSION}.${MIN_GCC_MINOR_VERSION}.${MIN_GCC_REVISION}"
+  return 1 
+fi
+
+if [ "${GCC_VERSION[1]}" -lt ${MIN_GCC_MINOR_VERSION} ] ;
+then
+  echo "Your version of GCC is too old: ${GCC_VERSION_STR}; it must be at least ${MIN_GCC_MAJOR_VERSION}.${MIN_GCC_MINOR_VERSION}."
+  return 1
+fi
+
+
+echo "GCC ${GCC_VERSION_STR}: OK"
+
+#Don't use the C++11 ABI; use the old one 
+#These two options should be equivalent to all the options commented out below
+#-march=haswell enables MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AVX, AVX2, AES, PCLMUL, FSGSBASE, RDRND, FMA, BMI, BMI2 and F16C instruction set support. See https://gcc.gnu.org/onlinedocs/gcc-6.2.0/gcc/x86-Options.html#x86-Options
+BAZEL_BUILD_OPTS="--cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 \
+		--copt=-march=haswell \
+		--copt=-mtune=broadwell \
+                --copt=-O3 \
+                --copt=-Wformat \
+                --copt=-Wformat-security \
+                --copt=-fstack-protector \
+                --copt=-fPIC \
+                --copt=-fpic \
+                --linkopt=-znoexecstack \
+                --linkopt=-zrelro \
+                --linkopt=-znow \
+                --linkopt=-fstack-protector \
+                --linkopt=-pie"
+#		--copt=-mcx16 \
+#		--copt=-msahf \
+#		--copt=-mmovbe \
+#		--copt=-maes \
+#		--copt=-mpclmul \
+#		--copt=-mpopcnt \
+#		--copt=-mabm \
+#		--copt=-mno-lwp \
+#		--copt=-mfma \
+#		--copt=-mno-fma4 \
+#		--copt=-mno-xop \
+#		--copt=-mbmi \
+#		--copt=-mbmi2 \
+#		--copt=-mno-tbm \
+#		--copt=-mavx \
+#		--copt=-mavx2 \
+#		--copt=-msse4.2 \
+#		--copt=-msse4.1 \
+#		--copt=-mlzcnt \
+#		--copt=-mno-rtm \
+#		--copt=-mno-hle \
+#		--copt=-mrdrnd \
+#		--copt=-mf16c \
+#		--copt=-mfsgsbase \
+#		--copt=-mno-rdseed \
+#		--copt=-mno-prfchw \
+#		--copt=-mno-adx \
+#		--copt=-mfxsr \
+#		--copt=-mxsave \
+#		--copt=-mxsaveopt \
+#		--copt=--param=l1-cache-size=32 \
+#		--copt=--param=l1-cache-line-size=64 \
+#		--copt=--param=l2-cache-size=20480"
+
+echo "exporting BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}"
+export BAZEL_BUILD_OPTS=${BAZEL_BUILD_OPTS}
