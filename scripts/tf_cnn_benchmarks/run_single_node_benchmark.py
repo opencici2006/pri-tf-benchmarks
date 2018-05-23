@@ -136,7 +136,7 @@ def main():
   arg_parser.add_argument('-o', "--num_omp_threads", help='Specify the number of OMP threads', dest=
   "num_omp_threads",  
                           default=get_optimization_parameter(args.cpu, args.model, args.data_dir, 'OMP_NUM_THREADS'))
-
+                          
   #enable tracing for VTune integration
   arg_parser.add_argument('-t', "--trace_file", help='The trace file for vtune integration', dest="trace_file", default=None)
   
