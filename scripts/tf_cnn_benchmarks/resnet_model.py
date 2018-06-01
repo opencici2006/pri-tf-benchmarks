@@ -69,4 +69,5 @@ class Resnetv1Model(model_lib.Model):
       cnn.resnet_bottleneck_v1(2048, 512, stride)
     #cnn.spatial_mean()
     cnn.apool(7, 7, 1, 1)
-    cnn.reshape([self.batch_size, 2048])
+    #cnn.reshape([self.batch_size, 2048])
+    cnn.reshape([-1, 2048])

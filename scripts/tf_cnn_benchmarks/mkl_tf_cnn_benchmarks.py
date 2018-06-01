@@ -44,7 +44,7 @@ import model_config
 import preprocessing
 import variable_mgr
 
-import horovod.tensorflow as hvd
+#import horovod.tensorflow as hvd
 # Wei
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import math_ops
@@ -53,12 +53,12 @@ from tensorflow.python.training.learning_rate_decay import piecewise_constant
 # Wei
 
 
-hvd.init()
-MPI_RANK = int(hvd.rank())
-MPI_LOCAL_RANK = int(hvd.local_rank())
-MPI_SIZE = int(hvd.size())
-print("SIZE:")
-print(MPI_SIZE)
+#hvd.init()
+#MPI_RANK = int(hvd.rank())
+#MPI_LOCAL_RANK = int(hvd.local_rank())
+#MPI_SIZE = int(hvd.size())
+#print("SIZE:")
+#print(MPI_SIZE)
 
 from setenvs import setenvs
 from setenvs import arglist
@@ -76,15 +76,14 @@ tf.flags.DEFINE_string('model', 'trivial', 'name of the model to run')
 # Under the benchmarking mode, user can specify whether nor not to use
 #   the forward-only option, which will only compute the loss function.
 #   forward-only cannot be enabled with eval at the same time.
-tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking')
-#tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
+#tf.flags.DEFINE_boolean('eval', True, 'whether use eval or benchmarking') #for inference
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
-tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device')
-#tf.flags.DEFINE_integer('batch_size', 128, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 500,
-#tf.flags.DEFINE_integer('num_batches', 14400,
-#tf.flags.DEFINE_integer('num_batches', 57600,
+#tf.flags.DEFINE_integer('batch_size', 100, 'batch size per compute device') #for inference
+tf.flags.DEFINE_integer('batch_size', 128, 'batch size per compute device')
+tf.flags.DEFINE_integer('num_batches', 14400,
+#tf.flags.DEFINE_integer('num_batches', 500, #for inference
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -101,9 +100,7 @@ tf.flags.DEFINE_string('data_name', None,
                        """Name of dataset: imagenet or flowers.
                        If not specified, it is automatically guessed
                        based on --data_dir.""")
-#tf.flags.DEFINE_string('resize_method', 'bilinear',
-tf.flags.DEFINE_string('resize_method', 'crop',
-#tf.flags.DEFINE_string('resize_method', 'bilinear',
+tf.flags.DEFINE_string('resize_method', 'bilinear',
                        """Method for resizing input images:
                        crop,nearest,bilinear,bicubic or area.
                        The 'crop' mode requires source images to be at least
@@ -141,9 +138,9 @@ tf.flags.DEFINE_string('graph_file', None,
                        in 'txt'.""")
 tf.flags.DEFINE_string('optimizer', 'momentum',
                        'Optimizer to use: momentum or sgd or rmsprop')
-tf.flags.DEFINE_string('list_iters_when_decay', "19200,38400,51200",
+tf.flags.DEFINE_string('list_iters_when_decay', "4800,9600,12800",
                       """List of steps after which learning rate decays.""")
-tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 3200,
+tf.flags.DEFINE_integer('num_iters_for_grad_warmup', 800,
                       """Number of iters for gradual lr warmup.""")
 tf.flags.DEFINE_float('learning_rate', 0.1,
                       """Initial learning rate for training.""")
@@ -193,7 +190,6 @@ tf.flags.DEFINE_boolean('force_gpu_compatible', True,
 #       nccl all-reduce for replicating within a server.
 tf.flags.DEFINE_string(
     'variable_update', 'independent',
-    #'variable_update', 'parameter_server',
     ('The method for managing variables: '
      'parameter_server, replicated, distributed_replicated, independent'))
 tf.flags.DEFINE_boolean(
@@ -214,19 +210,20 @@ tf.flags.DEFINE_boolean('cross_replica_sync', True, '')
 tf.flags.DEFINE_integer('summary_verbosity', 1,
                         """Verbosity level for summary ops. Pass 0 to disable
                         both summaries and checkpoints.""")
-#tf.flags.DEFINE_integer('save_summaries_steps', 1000,
-tf.flags.DEFINE_integer('save_summaries_steps', 3000,
+tf.flags.DEFINE_integer('save_summaries_steps', 1000,
                         """How often to save summaries for trained models.
                         Pass 0 to disable summaries.""")
-tf.flags.DEFINE_integer('save_model_secs', 1200,
+tf.flags.DEFINE_integer('save_model_secs', 3600,
                         """How often to save trained models. Pass 0 to disable
                         checkpoints""")
-tf.flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/1st16RN50train',
+tf.flags.DEFINE_string('train_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/train',
                        """Path to session checkpoints.""")
 tf.flags.DEFINE_string('eval_dir', '/nfs/site/home/wangwei3/shared_big/horovod-MN-RN50/eval',
                        """Directory where to write eval event logs.""")
 tf.flags.DEFINE_string('pretrain_dir', None,
                        """Path to pretrained session checkpoints.""")
+tf.flags.DEFINE_string('export_inference_graph', None,
+                       """Path to save inference graph.""")
 
 FLAGS = tf.flags.FLAGS
 
@@ -632,7 +629,10 @@ def add_image_preprocessing(dataset, input_nchan, image_size, batch_size,
     nclass = 1001
   else:
     nclass = 1001
-    input_shape = [batch_size, input_nchan, image_size, image_size]
+    if FLAGS.data_format == 'NCHW':
+      input_shape = [batch_size, input_nchan, image_size, image_size]
+    else:
+      input_shape = [batch_size, image_size, image_size, input_nchan]
     images = tf.truncated_normal(
         input_shape,
         dtype=input_data_type,
@@ -733,10 +733,7 @@ def get_perf_timing_str(batch_size, step_train_times, scale=1):
 
 
 def load_checkpoint(saver, sess, ckpt_dir):
-  print(ckpt_dir)
   ckpt = tf.train.get_checkpoint_state(ckpt_dir)
-  print(ckpt)
-  print(ckpt.model_checkpoint_path)
   if ckpt and ckpt.model_checkpoint_path:
     if os.path.isabs(ckpt.model_checkpoint_path):
       # Restores from checkpoint with absolute path.
@@ -902,7 +899,7 @@ class BenchmarkCNN(object):
     """Print basic information."""
     log_fn('Model:       %s' % self.model)
     log_fn('Mode:        %s' % get_mode_from_flags())
-    log_fn('Batch size:  %s global' % (self.batch_size * MPI_SIZE))
+    #log_fn('Batch size:  %s global' % (self.batch_size * MPI_SIZE))
     log_fn('             %s per device' % (self.batch_size))
     log_fn('Devices:     %s' % self.raw_devices)
     log_fn('Data format: %s' % self.data_format)
@@ -916,6 +913,39 @@ class BenchmarkCNN(object):
       log_fn('Staged vars: %s' % FLAGS.staged_vars)
     log_fn('==========')
 
+  def export_inference_graph(self):
+    """Build the TensorFlow graph."""
+    image_size = self.model_conf.get_image_size()
+    data_type = tf.float32
+    input_data_type = tf.float32
+    input_nchan = 3
+    phase_train = False
+    
+    # Build the processing and model for the worker.
+    #with tf.device(self.cpu_device):
+    #  nclass, images_splits, labels_splits = add_image_preprocessing(
+    #      self.dataset, input_nchan, image_size, self.batch_size,
+    #      len(self.devices), input_data_type, self.resize_method,
+    #      not FLAGS.eval)
+          
+    # Construct placeholder input node of appropriate data_format
+    #input_shape = images_splits[0].get_shape().as_list()
+    #input_shape[0] = None
+    image_size = self.model_conf.get_image_size()
+    input_shape = [None, image_size, image_size, input_nchan]
+    input = tf.placeholder(tf.float32, shape=input_shape, name='input')
+    network = ConvNetBuilder(
+          input, input_nchan, phase_train, self.data_format, data_type)
+    with tf.variable_scope('v0'):
+      self.model_conf.add_inference(network)
+      # Add the final fully-connected class layer
+      logits = network.affine(1001, activation='linear')
+    probs = tf.nn.softmax(logits, name='predict')
+    inference_graph = tf.graph_util.extract_sub_graph(
+        probs.graph.as_graph_def(), ['predict'])
+    with open(FLAGS.export_inference_graph, "w") as f:
+      f.write(str(inference_graph))
+    
   def run(self):
     if FLAGS.job_name == 'ps':
       log_fn('Running parameter server %s' % self.task_index)
@@ -952,7 +982,7 @@ class BenchmarkCNN(object):
         count_top_5 += results[1]
         if (step + 1) % FLAGS.display_every == 0:
           duration = time.time() - start_time
-          examples_per_sec = self.batch_size * FLAGS.display_every / duration
+          examples_per_sec = self.batch_size * self.num_batches / duration
           log_fn('%i\t%.1f examples/sec' % (step + 1, examples_per_sec))
           start_time = time.time()
       precision_at_1 = count_top_1 / total_eval_count
@@ -1132,10 +1162,10 @@ class BenchmarkCNN(object):
       with self.variable_mgr.create_outer_variable_scope(
           device_num), tf.name_scope('tower_%i' % device_num) as name_scope:
         results = self.add_forward_pass_and_gradients(
-            images_splits[device_num], labels_splits[device_num], nclass,
-            phase_train, device_num, input_data_type, data_type, input_nchan,
-            use_synthetic_gpu_images, gpu_copy_stage_ops, gpu_compute_stage_ops,
-            gpu_grad_stage_ops)
+              images_splits[device_num], labels_splits[device_num], nclass,
+              phase_train, device_num, input_data_type, data_type, input_nchan,
+              use_synthetic_gpu_images, gpu_copy_stage_ops, gpu_compute_stage_ops,
+              gpu_grad_stage_ops)
         if phase_train:
           losses.append(results[0])
           device_grads.append(results[1])
@@ -1169,7 +1199,7 @@ class BenchmarkCNN(object):
                                       epsilon=FLAGS.rmsprop_epsilon)
     else:
       raise ValueError('Optimizer "%s" was not recognized', FLAGS.optimizer)
-    opt = hvd.DistributedOptimizer(opt)
+    #opt = hvd.DistributedOptimizer(opt)
 
     if not update_ops:
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, name_scope)
@@ -1202,10 +1232,10 @@ class BenchmarkCNN(object):
       with tf.device(device):
         total_loss = tf.reduce_mean(losses)
         avg_grads = self.variable_mgr.get_gradients_to_apply(d, gradient_state)
-        with tf.name_scope(opt._name + "_Allreduce"):
-          avg_grads = [(hvd.allreduce(gradient, device_dense=opt._device_dense,
-                             device_sparse=opt._device_sparse), var)
-                  for (gradient, var) in avg_grads]
+        #with tf.name_scope(opt._name + "_Allreduce"):
+        #  avg_grads = [(hvd.allreduce(gradient, device_dense=opt._device_dense,
+        #                     device_sparse=opt._device_sparse), var)
+        #          for (gradient, var) in avg_grads]
 
         gradient_clip = FLAGS.gradient_clip
         if self.dataset and FLAGS.num_epochs_per_decay > 0:
@@ -1241,7 +1271,7 @@ class BenchmarkCNN(object):
           tf.summary.histogram(var.op.name, var)
     fetches = [train_op, total_loss] + enqueue_ops
     return (enqueue_ops, fetches)
-
+  
   def add_forward_pass_and_gradients(
       self, host_images, host_labels, nclass, phase_train, device_num,
       input_data_type, data_type, input_nchan, use_synthetic_gpu_images,
@@ -1300,6 +1330,8 @@ class BenchmarkCNN(object):
       self.model_conf.add_inference(network)
       # Add the final fully-connected class layer
       logits = network.affine(nclass, activation='linear')
+      #prediction = tf.nn.softmax(logits)
+      # Extract subgraph of prediction, for writing to file
       if not phase_train:
         top_1_op = tf.reduce_sum(
             tf.cast(tf.nn.in_top_k(logits, labels, 1), data_type))
@@ -1420,7 +1452,11 @@ def main(_):
   log_fn('TensorFlow:  %i.%i' % (tfversion[0], tfversion[1]))
 
   bench.print_info()
-  bench.run()
+  
+  if FLAGS.export_inference_graph:
+      bench.export_inference_graph()
+  else:
+      bench.run()
 
 
 if __name__ == '__main__':
